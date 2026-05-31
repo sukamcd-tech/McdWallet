@@ -60,6 +60,19 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
     );
   }
 
+  void _showEditWalletSheet(BuildContext context, WalletModel wallet) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _AddWalletBottomSheet(
+        colorOptions: _colorOptions,
+        iconOptions: _iconOptions,
+        existingWallet: wallet,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final walletsAsync = ref.watch(walletsProvider);
@@ -122,117 +135,72 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
               return Container(
                 key: ValueKey(wallet.id),
                 margin: const EdgeInsets.only(bottom: 12),
-                child: AppCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      // Hamburger Handle
-                      ReorderableDragStartListener(
-                        index: index,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                          child: Icon(
-                            LucideIcons.menu,
-                            color: AppColors.textMuted.withOpacity(0.5),
-                            size: 18,
+                child: GestureDetector(
+                  onTap: () => _showEditWalletSheet(context, wallet),
+                  child: AppCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        // Hamburger Handle
+                        ReorderableDragStartListener(
+                          index: index,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                            child: Icon(
+                              LucideIcons.menu,
+                              color: AppColors.textMuted.withOpacity(0.5),
+                              size: 18,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      
-                      // Wallet Icon
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: walletColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                        const SizedBox(width: 8),
+                        
+                        // Wallet Icon
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: walletColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(walletIcon, color: walletColor, size: 18),
                         ),
-                        child: Icon(walletIcon, color: walletColor, size: 18),
-                      ),
-                      const SizedBox(width: 14),
-                      
-                      // Wallet Name & Balance Column
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              wallet.name,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                        const SizedBox(width: 14),
+                        
+                        // Wallet Name & Balance Column
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                wallet.name,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              hideBalance ? '••••••' : _formatWalletBalance(wallet),
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                              const SizedBox(height: 4),
+                              Text(
+                                hideBalance ? '••••••' : _formatWalletBalance(wallet),
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      
-                      // Delete Action Button
-                      IconButton(
-                        icon: const Icon(LucideIcons.trash2, color: AppColors.danger, size: 18),
-                        onPressed: () async {
-                          final confirm = await showModalBottomSheet<bool>(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            builder: (context) => Container(
-                              decoration: const BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                                border: Border(top: BorderSide(color: AppColors.border, width: 1.0)),
-                              ),
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    'Hapus Dompet?',
-                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Apakah Anda yakin ingin menghapus dompet "${wallet.name}"? Semua transaksi terkait dompet ini akan terhapus.',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  CustomButton(
-                                    text: 'Hapus',
-                                    color: AppColors.danger,
-                                    onPressed: () => Navigator.pop(context, true),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  CustomButton(
-                                    text: 'Batal',
-                                    isOutlined: true,
-                                    onPressed: () => Navigator.pop(context, false),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                          if (confirm == true) {
-                            ref.read(walletsProvider.notifier).removeWallet(wallet.id);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Dompet "${wallet.name}" berhasil dihapus.'),
-                                backgroundColor: AppColors.success,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ],
+                        
+                        // Right Chevron indicating tap action
+                        Icon(
+                          LucideIcons.chevronRight,
+                          color: AppColors.textMuted.withOpacity(0.4),
+                          size: 18,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -257,11 +225,13 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
 class _AddWalletBottomSheet extends ConsumerStatefulWidget {
   final List<String> colorOptions;
   final List<Map<String, dynamic>> iconOptions;
+  final WalletModel? existingWallet;
 
   const _AddWalletBottomSheet({
     Key? key,
     required this.colorOptions,
     required this.iconOptions,
+    this.existingWallet,
   }) : super(key: key);
 
   @override
@@ -281,8 +251,16 @@ class _AddWalletBottomSheetState extends ConsumerState<_AddWalletBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _selectedColor = widget.colorOptions.first;
-    _selectedIconName = widget.iconOptions.first['name'] as String;
+    if (widget.existingWallet != null) {
+      _nameController.text = widget.existingWallet!.name;
+      _balanceController.text = NumberFormat.decimalPattern('id_ID').format(widget.existingWallet!.balance);
+      _selectedColor = widget.existingWallet!.color;
+      _selectedIconName = widget.existingWallet!.icon;
+      _selectedCurrency = widget.existingWallet!.currencyCode;
+    } else {
+      _selectedColor = widget.colorOptions.first;
+      _selectedIconName = widget.iconOptions.first['name'] as String;
+    }
   }
 
   @override
@@ -305,24 +283,36 @@ class _AddWalletBottomSheetState extends ConsumerState<_AddWalletBottomSheet> {
 
       final initialBalance = double.tryParse(_balanceController.text.replaceAll('.', '').trim()) ?? 0.0;
 
-      final newWallet = WalletModel(
-        id: '', // Di-generate otomatis oleh Postgres/Supabase
-        userId: user.id,
-        name: _nameController.text.trim(),
-        balance: initialBalance,
-        color: _selectedColor,
-        icon: _selectedIconName,
-        createdAt: DateTime.now(),
-        currencyCode: _selectedCurrency,
-      );
+      if (widget.existingWallet != null) {
+        final updatedWallet = widget.existingWallet!.copyWith(
+          name: _nameController.text.trim(),
+          balance: initialBalance,
+          color: _selectedColor,
+          icon: _selectedIconName,
+          currencyCode: _selectedCurrency,
+        );
 
-      await ref.read(walletsProvider.notifier).addWallet(newWallet);
+        await ref.read(walletsProvider.notifier).editWallet(widget.existingWallet!.id, updatedWallet);
+      } else {
+        final newWallet = WalletModel(
+          id: '', // Di-generate otomatis oleh Postgres/Supabase
+          userId: user.id,
+          name: _nameController.text.trim(),
+          balance: initialBalance,
+          color: _selectedColor,
+          icon: _selectedIconName,
+          createdAt: DateTime.now(),
+          currencyCode: _selectedCurrency,
+        );
+
+        await ref.read(walletsProvider.notifier).addWallet(newWallet);
+      }
       
       if (mounted) {
         Navigator.pop(context); // Tutup bottom sheet
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dompet baru berhasil ditambahkan!'),
+          SnackBar(
+            content: Text(widget.existingWallet != null ? 'Dompet berhasil diperbarui!' : 'Dompet baru berhasil ditambahkan!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -331,7 +321,7 @@ class _AddWalletBottomSheetState extends ConsumerState<_AddWalletBottomSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal membuat dompet: ${e.toString()}'),
+            content: Text('Gagal menyimpan dompet: ${e.toString()}'),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -364,13 +354,75 @@ class _AddWalletBottomSheetState extends ConsumerState<_AddWalletBottomSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Tambah Dompet Baru',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.existingWallet != null ? 'Edit Dompet' : 'Tambah Dompet Baru',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (widget.existingWallet != null)
+                      IconButton(
+                        icon: const Icon(LucideIcons.trash2, color: AppColors.danger, size: 20),
+                        onPressed: () async {
+                          final confirm = await showModalBottomSheet<bool>(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => Container(
+                              decoration: const BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                border: Border(top: BorderSide(color: AppColors.border, width: 1.0)),
+                              ),
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Hapus Dompet?',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Apakah Anda yakin ingin menghapus dompet "${widget.existingWallet!.name}"? Semua transaksi terkait dompet ini akan terhapus.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  CustomButton(
+                                    text: 'Hapus',
+                                    color: AppColors.danger,
+                                    onPressed: () => Navigator.pop(context, true),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  CustomButton(
+                                    text: 'Batal',
+                                    isOutlined: true,
+                                    onPressed: () => Navigator.pop(context, false),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                          if (confirm == true) {
+                            ref.read(walletsProvider.notifier).removeWallet(widget.existingWallet!.id);
+                            if (mounted) {
+                              Navigator.pop(context); // Tutup bottom sheet edit
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Dompet "${widget.existingWallet!.name}" berhasil dihapus.'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 
@@ -576,7 +628,7 @@ class _AddWalletBottomSheetState extends ConsumerState<_AddWalletBottomSheet> {
                 
                 // TOMBOL SIMPAN
                 CustomButton(
-                  text: 'Simpan Dompet',
+                  text: widget.existingWallet != null ? 'Simpan Perubahan' : 'Simpan Dompet',
                   isLoading: _isSaving,
                   onPressed: _handleSaveWallet,
                 ),

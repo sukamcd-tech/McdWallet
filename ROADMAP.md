@@ -25,13 +25,24 @@ Daftar perbaikan teknis pada modul yang sudah ada untuk menjamin skalabilitas ap
     *   Membuat modul sinkronisasi latar belakang yang mendeteksi jaringan menggunakan `connectivity_plus` dan mengunggah data tertunda ke Supabase secara otomatis saat koneksi pulih.
 *   **Kompleksitas**: Tinggi (High)
 
-### [ ] Otomatisasi Kunci Aplikasi (*Auto-Lock Timeout*)
+### [x] Otomatisasi Kunci Aplikasi (*Auto-Lock Timeout*)
+*   **Status**: **SELESAI (v2.6.0)**
 *   **Deskripsi**: Mengamankan data finansial pengguna secara otomatis jika aplikasi ditinggalkan dalam kondisi terbuka.
-*   **Strategi Implementasi**:
-    *   Memantau status aplikasi melalui class `WidgetsBindingObserver` (*App Lifecycle States*).
-    *   Mencatat timestamp saat aplikasi masuk ke status `paused` atau `inactive`.
-    *   Memicu layar PIN secara otomatis saat aplikasi kembali ke status `resumed` apabila durasi jeda telah melebihi 3 menit.
+*   **Hasil Implementasi**:
+    *   **Observer Daur Hidup Aplikasi (WidgetsBindingObserver)**: Menerapkan pemantauan status daur hidup aplikasi secara reaktif di tingkat `MyApp` (root widget) guna menangkap pergeseran status aplikasi ke `paused` atau `inactive` saat dikirim ke latar belakang.
+    *   **Pencatatan Waktu & Lock Otomatis**: Secara asinkron mencatat timestamp jeda dan secara otomatis mengunci aplikasi (`ref.read(securityProvider.notifier).lock()`) saat pengguna kembali ke aplikasi (`resumed`) jika durasi jeda telah melebihi batas aman **3 menit**.
+    *   **Integrasi Lock Screen Mulus**: State reaktif `securityProvider` mendeteksi status penguncian dan secara instan merender ulang antarmuka ke `PinEntryScreen` guna melindungi privasi data finansial.
 *   **Kompleksitas**: Sedang (Medium)
+
+### [x] Pelindung Tampilan Aplikasi Latar Belakang (*Secure App Switcher Overlay & Privacy Switch*)
+*   **Status**: **SELESAI (v2.7.0)**
+*   **Deskripsi**: Melindungi data finansial sensitif (seperti saldo, riwayat transaksi, dan grafik analitik) agar tidak terlihat oleh orang lain atau tertangkap snapshot sistem saat aplikasi berada di daftar aplikasi aktif (*app switcher / recents menu*), terintegrasi dengan tombol sakelar master privasi di halaman pengaturan.
+*   **Hasil Implementasi**:
+    *   **Overlay Penutup Layar Penuh (*Full-Screen Cover*)**: Merancang penutup layar premium berwarna putih bersih (`Colors.white`) dengan logo aplikasi `logo.png` minimalis di bagian tengah yang presisi.
+    *   **Integrasi Lifecycle & MaterialApp.builder**: Memanfaatkan daur hidup aplikasi reaktif (`WidgetsBindingObserver`) untuk mendeteksi status `paused` atau `inactive` seketika saat aplikasi diminimalkan atau digeser ke atas.
+    *   **Sakelar Master Keamanan & Privasi (*Master Switch*)**: Menambahkan switch premium "Kunci & Privasi Latar Belakang" di halaman pengaturan yang bersinergi dengan `SharedPreferences`. Jika dimatikan, semua pengaman (kode PIN, sidik jari/biometrik, dan penutup layar app switcher) secara otomatis dinonaktifkan dan dilewati secara dinamis demi kenyamanan pengguna.
+    *   **Penyematan Global via Stack Navigator**: Menghubungkan visual penutup secara global menggunakan `MaterialApp.builder` agar melingkupi seluruh struktur navigasi halaman secara dinamis tanpa mengganggu performa rendering dan langsung menutup data seketika sebelum sistem merekam gambar *snapshot*.
+*   **Kompleksitas**: Rendah (Low)
 
 ### [x] Sakelar Getaran Taktil Global (*Global Haptic Feedback Toggle*)
 *   **Status**: **SELESAI (v2.5.0)**

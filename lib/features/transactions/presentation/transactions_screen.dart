@@ -361,6 +361,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         : null;
     final currencyCode = activeWallet?.currencyCode ?? 'IDR';
 
+    final now = DateTime.now();
+    final canGoToNextMonth = _selectedMonth.year < now.year || 
+        (_selectedMonth.year == now.year && _selectedMonth.month < now.month);
+
     final monthTxs = filteredTxs.where((tx) {
       return tx.date.year == _selectedMonth.year &&
           tx.date.month == _selectedMonth.month;
@@ -488,12 +492,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(LucideIcons.chevronRight, color: AppColors.textSecondary, size: 18),
-                  onPressed: () {
+                  icon: Icon(
+                    LucideIcons.chevronRight, 
+                    color: canGoToNextMonth ? AppColors.textSecondary : AppColors.textMuted.withOpacity(0.3), 
+                    size: 18
+                  ),
+                  onPressed: canGoToNextMonth ? () {
                     setState(() {
                       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
                     });
-                  },
+                  } : null,
                   visualDensity: VisualDensity.compact,
                 ),
               ],

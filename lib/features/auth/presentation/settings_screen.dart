@@ -342,57 +342,119 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ).animate().fadeIn(delay: 150.ms, duration: 300.ms),
             const SizedBox(height: 8),
             AppCard(
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PinSetupScreen()),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceAlt,
-                          borderRadius: BorderRadius.circular(10),
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  // Master Switch Keamanan & Privasi
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(LucideIcons.shield, color: AppColors.textSecondary, size: 16),
                         ),
-                        child: const Icon(LucideIcons.shieldAlert, color: AppColors.textSecondary, size: 16),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Kunci & Privasi Latar Belakang',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Gunakan PIN & samarkan layar di app switcher',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: securityState.isSecurityEnabled,
+                          activeColor: AppColors.primary,
+                          onChanged: (val) {
+                            AppHaptics.lightImpact();
+                            ref.read(securityProvider.notifier).toggleSecurityEnabled(val);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: AppColors.border, height: 1, thickness: 0.5),
+                  // Opsi Setel/Ubah PIN (Hanya aktif jika Master Switch menyala)
+                  Opacity(
+                    opacity: securityState.isSecurityEnabled ? 1.0 : 0.4,
+                    child: InkWell(
+                      onTap: securityState.isSecurityEnabled
+                          ? () {
+                              AppHaptics.lightImpact();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const PinSetupScreen()),
+                              );
+                            }
+                          : null,
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
                           children: [
-                            Text(
-                              securityState.hasPin ? 'Ganti PIN Pengaman' : 'Aktifkan PIN Pengaman',
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceAlt,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(LucideIcons.shieldAlert, color: AppColors.textSecondary, size: 16),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    securityState.hasPin ? 'Ganti PIN Pengaman' : 'Aktifkan PIN Pengaman',
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    securityState.hasPin
+                                        ? 'Ubah kode PIN pengunci aplikasi Anda'
+                                        : 'Amankan data finansial dengan kunci PIN 6-digit',
+                                    style: const TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              securityState.hasPin
-                                  ? 'Ubah kode PIN pengunci aplikasi Anda'
-                                  : 'Amankan data finansial dengan kunci PIN 6-digit',
-                              style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 11,
-                              ),
-                            ),
+                            const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
                           ],
                         ),
                       ),
-                      const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ).animate().fadeIn(delay: 200.ms, duration: 350.ms).slideY(begin: 0.05, end: 0, duration: 350.ms),
 

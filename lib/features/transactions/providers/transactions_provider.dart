@@ -85,6 +85,23 @@ class WalletsNotifier extends StateNotifier<AsyncValue<List<WalletModel>>> {
     }
   }
 
+  Future<void> editWallet(String walletId, WalletModel wallet) async {
+    try {
+      final updatedWallet = await _service.updateWallet(walletId, wallet.toJson());
+      state.whenData((list) {
+        final index = list.indexWhere((w) => w.id == walletId);
+        if (index != -1) {
+          final newList = [...list];
+          newList[index] = updatedWallet;
+          state = AsyncValue.data(newList);
+        }
+      });
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+
   Future<void> removeWallet(String walletId) async {
     try {
       await _service.deleteWallet(walletId);

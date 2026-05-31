@@ -69,21 +69,91 @@ void main() async {
   );
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
+  DateTime? _pausedAt;
+  bool _isMinimized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final securityState = ref.read(securityProvider);
+    if (!securityState.isSecurityEnabled) {
+      // Jika fitur keamanan dinonaktifkan, pastikan overlay mati dan abaikan penguncian
+      setState(() {
+        _isMinimized = false;
+      });
+      return;
+    }
+
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _pausedAt ??= DateTime.now();
+      setState(() {
+        _isMinimized = true;
+      });
+    } else if (state == AppLifecycleState.resumed) {
+      setState(() {
+        _isMinimized = false;
+      });
+      if (_pausedAt != null) {
+        final diff = DateTime.now().difference(_pausedAt!);
+        if (diff.inMinutes >= 3) {
+          ref.read(securityProvider.notifier).lock();
+        }
+        _pausedAt = null;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Sinkronisasi status getaran taktil global
     AppHaptics.enabled = ref.watch(hapticProvider);
 
     final authState = ref.watch(authStateProvider);
 
-
     return MaterialApp(
       title: 'McdWallet',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme, // Mengaktifkan tema Off-White & Charcoal Premium
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            if (_isMinimized)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.white,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 140,
+                      height: 140,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
       home: authState.when(
         loading: () => const Scaffold(
           body: Center(
@@ -104,7 +174,10 @@ class MyApp extends ConsumerWidget {
             // Cek status keamanan lokal (PIN & Biometric)
             final securityState = ref.watch(securityProvider);
             
-            if (!securityState.hasPin) {
+            if (!securityState.isSecurityEnabled) {
+              // Jika fitur privasi dimatikan, langsung masuk MainLayout
+              return const MainLayout();
+            } else if (!securityState.hasPin) {
               // Wajib setel PIN jika belum ada
               return const PinSetupScreen();
             } else if (securityState.isLocked) {

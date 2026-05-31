@@ -134,7 +134,7 @@ class _FeedbackSheetState extends ConsumerState<FeedbackSheet> {
                 ),
               ],
             ),
-            backgroundColor: _selectedType == 'bug' ? AppColors.danger : AppColors.primary,
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -245,7 +245,7 @@ class _FeedbackSheetState extends ConsumerState<FeedbackSheet> {
 
               // Email Pelapor
               const Text(
-                'EMAIL (OPSIONAL)',
+                'EMAIL',
                 style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 10,
@@ -254,27 +254,31 @@ class _FeedbackSheetState extends ConsumerState<FeedbackSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 13.5, fontWeight: FontWeight.w600),
-                decoration: InputDecoration(
-                  hintText: 'nama@email.com',
-                  hintStyle: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  filled: true,
-                  fillColor: AppColors.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border, width: 0.8),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
+              Opacity(
+                opacity: 0.5,
+                child: TextFormField(
+                  controller: _emailController,
+                  readOnly: true,
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13.5, fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    hintText: 'Tidak ada akun yang login',
+                    hintStyle: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.normal),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    filled: true,
+                    fillColor: AppColors.surfaceAlt,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                    ),
                   ),
                 ),
               ),
