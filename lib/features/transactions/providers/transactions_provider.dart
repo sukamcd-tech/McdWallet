@@ -7,6 +7,7 @@ import '../domain/category_model.dart';
 import '../domain/transaction_model.dart';
 import '../../../core/providers/supabase_provider.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/services/widget_service.dart';
 import '../../budgets/providers/budgets_provider.dart';
 import '../../forex/providers/forex_provider.dart';
 import '../../../core/providers/budget_settings_provider.dart';
@@ -253,6 +254,9 @@ class AllTransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionM
     try {
       final txs = await _service.fetchTransactions(userId);
       state = AsyncValue.data(txs);
+      // Simpan user_id agar widget bisa query Supabase mandiri (tanpa app aktif)
+      WidgetService.saveUserId(userId);
+      _updateHomescreenWidget(txs);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -260,6 +264,23 @@ class AllTransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionM
 
   void clear() {
     state = const AsyncValue.data([]);
+    WidgetService.updateTodayExpense(0.0);
+    WidgetService.clearUserId();
+  }
+
+  void _updateHomescreenWidget(List<TransactionModel> txs) {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final endOfToday = startOfToday.add(const Duration(days: 1));
+
+    final double totalToday = txs.where((t) {
+      final isExpense = t.type == 'expense';
+      final isToday = (t.date.isAfter(startOfToday) || t.date.isAtSameMomentAs(startOfToday)) &&
+          t.date.isBefore(endOfToday);
+      return isExpense && isToday;
+    }).fold(0.0, (sum, t) => sum + t.amount);
+
+    WidgetService.updateTodayExpense(totalToday);
   }
 }
 

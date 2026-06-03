@@ -325,3 +325,43 @@ create policy "User dapat menghapus struk mereka sendiri"
   on storage.objects for delete
   to authenticated
   using (bucket_id = 'receipts' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ========================================================
+-- 9. TABEL: savings_goals (Target Tabungan)
+-- ========================================================
+create table if not exists public.savings_goals (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  target_amount numeric(15, 2) not null check (target_amount > 0),
+  current_amount numeric(15, 2) default 0.00 not null,
+  target_date date,
+  color text default '#FF9500' not null,
+  icon text default 'savings' not null,
+  saving_interval text check (saving_interval in ('custom', 'daily', 'weekly', 'monthly')) default 'custom' not null,
+  saving_amount_per_interval numeric(15, 2) default 0.00 not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.savings_goals enable row level security;
+
+-- Drop policies if exist to prevent duplicate errors on schema rerun
+drop policy if exists "User dapat melihat target tabungan mereka sendiri" on public.savings_goals;
+create policy "User dapat melihat target tabungan mereka sendiri"
+  on public.savings_goals for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "User dapat menambah target tabungan mereka sendiri" on public.savings_goals;
+create policy "User dapat menambah target tabungan mereka sendiri"
+  on public.savings_goals for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "User dapat mengubah target tabungan mereka sendiri" on public.savings_goals;
+create policy "User dapat mengubah target tabungan mereka sendiri"
+  on public.savings_goals for update
+  using (auth.uid() = user_id);
+
+drop policy if exists "User dapat menghapus target tabungan mereka sendiri" on public.savings_goals;
+create policy "User dapat menghapus target tabungan mereka sendiri"
+  on public.savings_goals for delete
+  using (auth.uid() = user_id);

@@ -557,13 +557,25 @@ class _TransactionInputScreenState extends ConsumerState<TransactionInputScreen>
 
         // Jika ada rekomendasi kategori, cari yang cocok dan set
         if (result.suggestedCategoryName != null) {
+          final suggName = result.suggestedCategoryName!.toLowerCase().trim();
           try {
+            // 1. Coba pencocokan persis
             final matchedCategory = activeCategories.firstWhere(
-              (c) => c.name.toLowerCase() == result.suggestedCategoryName!.toLowerCase(),
+              (c) => c.name.toLowerCase().trim() == suggName,
             );
             _selectedCategory = matchedCategory;
+            _isAiCategorized = true;
           } catch (_) {
-            // Kategori tidak ditemukan, abaikan
+            try {
+              // 2. Coba pencocokan sebagian (fuzzy) jika persis gagal
+              final matchedCategory = activeCategories.firstWhere(
+                (c) => c.name.toLowerCase().contains(suggName) || suggName.contains(c.name.toLowerCase()),
+              );
+              _selectedCategory = matchedCategory;
+              _isAiCategorized = true;
+            } catch (_) {
+              // Kategori tidak ditemukan, abaikan
+            }
           }
         }
       });

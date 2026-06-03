@@ -67,8 +67,8 @@ Format JSON yang HARUS dikembalikan wajib memiliki key berikut:
 {
   "merchant": "Nama Toko/Merchant (String)",
   "amount": nominal_total_belanja_angka_saja (double/numeric, tanpa titik pemisah ribuan, misal 125000),
-  "date": "tanggal_transaksi_format_YYYY-MM-DD (String)",
-  "category": "Kategori belanja yang paling cocok (pilih salah satu dari: 'Makanan & Minuman', 'Belanja', 'Transportasi', 'Tagihan', 'Hiburan', 'Lainnya')"
+  "date": "tanggal dan waktu transaksi format ISO 8601 YYYY-MM-DDTHH:mm:ss (String), gabungkan tanggal dan waktu dari struk jika ada. Jika waktu tidak tertera di struk, gunakan jam 00:00:00 (misal: 2026-06-03T14:30:00 atau 2026-06-03T00:00:00)",
+  "category": "Kategori belanja yang paling cocok (pilih salah satu dari: 'Makanan & Minuman', 'Belanja & Hiburan', 'Transportasi', 'WiFi & Internet', 'Kos & Rumah', 'Kesehatan', 'Lainnya')"
 }
 
 Teks mentah struk belanja:
@@ -147,8 +147,8 @@ Format JSON yang HARUS dikembalikan wajib memiliki key berikut:
 {
   "merchant": "Nama Toko/Merchant (String)",
   "amount": nominal_total_belanja_angka_saja (double/numeric, tanpa titik pemisah ribuan, misal 125000),
-  "date": "tanggal_transaksi_format_YYYY-MM-DD (String)",
-  "category": "Kategori belanja yang paling cocok (pilih salah satu dari: 'Makanan & Minuman', 'Belanja', 'Transportasi', 'Tagihan', 'Hiburan', 'Lainnya')"
+  "date": "tanggal dan waktu transaksi format ISO 8601 YYYY-MM-DDTHH:mm:ss (String), gabungkan tanggal dan waktu dari struk jika ada. Jika waktu tidak tertera di struk, gunakan jam 00:00:00 (misal: 2026-06-03T14:30:00 atau 2026-06-03T00:00:00)",
+  "category": "Kategori belanja yang paling cocok (pilih salah satu dari: 'Makanan & Minuman', 'Belanja & Hiburan', 'Transportasi', 'WiFi & Internet', 'Kos & Rumah', 'Kesehatan', 'Lainnya')"
 }
 
 Teks mentah struk belanja:
@@ -224,9 +224,18 @@ Kembalikan HANYA teks JSON tersebut tanpa penjelasan tambahan apa pun.
       }
     }
 
-    // ── 2. Ekstraksi Tanggal Transaksi ──
+    // ── 2. Ekstraksi Tanggal & Waktu Transaksi ──
     final dateRegex = RegExp(r'\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b');
     final isoDateRegex = RegExp(r'\b(\d{4})[/-](\d{1,2})[/-](\d{1,2})\b');
+    final timeRegex = RegExp(r'\b([01]?\d|2[0-3])[:.]([0-5]\d)(?:[:.]([0-5]\d))?\b');
+
+    int day = DateTime.now().day;
+    int month = DateTime.now().month;
+    int year = DateTime.now().year;
+    int hour = 0;
+    int minute = 0;
+    int second = 0;
+    bool timeFound = false;
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
@@ -235,27 +244,80 @@ Kembalikan HANYA teks JSON tersebut tanpa penjelasan tambahan apa pun.
       // Coba format DD/MM/YYYY
       var match = dateRegex.firstMatch(line);
       if (match != null) {
-        final day = int.tryParse(match.group(1)!) ?? 1;
-        final month = int.tryParse(match.group(2)!) ?? 1;
-        var year = int.tryParse(match.group(3)!) ?? DateTime.now().year;
-        if (year < 100) year += 2000; // Konversi YY ke YYYY
-        try {
-          date = DateTime(year, month, day);
-          break;
-        } catch (_) {}
+        day = int.tryParse(match.group(1)!) ?? day;
+        month = int.tryParse(match.group(2)!) ?? month;
+        var y = int.tryParse(match.group(3)!) ?? year;
+        if (y < 100) y += 2000; // Konversi YY ke YYYY
+        year = y;
+        
+        // Cari jam di baris yang sama terlebih dahulu
+        final lineWithoutDate = line.replaceAll(match.group(0)!, '');
+        var timeMatch = timeRegex.firstMatch(lineWithoutDate);
+        if (timeMatch != null) {
+          hour = int.tryParse(timeMatch.group(1)!) ?? hour;
+          minute = int.tryParse(timeMatch.group(2)!) ?? minute;
+          if (timeMatch.group(3) != null) {
+            second = int.tryParse(timeMatch.group(3)!) ?? second;
+          }
+          timeFound = true;
+        }
+        break;
       }
 
       // Coba format YYYY-MM-DD
       match = isoDateRegex.firstMatch(line);
       if (match != null) {
-        final year = int.tryParse(match.group(1)!) ?? DateTime.now().year;
-        final month = int.tryParse(match.group(2)!) ?? 1;
-        final day = int.tryParse(match.group(3)!) ?? 1;
-        try {
-          date = DateTime(year, month, day);
-          break;
-        } catch (_) {}
+        year = int.tryParse(match.group(1)!) ?? year;
+        month = int.tryParse(match.group(2)!) ?? month;
+        day = int.tryParse(match.group(3)!) ?? day;
+        
+        // Cari jam di baris yang sama terlebih dahulu
+        final lineWithoutDate = line.replaceAll(match.group(0)!, '');
+        var timeMatch = timeRegex.firstMatch(lineWithoutDate);
+        if (timeMatch != null) {
+          hour = int.tryParse(timeMatch.group(1)!) ?? hour;
+          minute = int.tryParse(timeMatch.group(2)!) ?? minute;
+          if (timeMatch.group(3) != null) {
+            second = int.tryParse(timeMatch.group(3)!) ?? second;
+          }
+          timeFound = true;
+        }
+        break;
       }
+    }
+
+    // Jika jam belum ketemu di baris tanggal, cari di seluruh baris
+    if (!timeFound) {
+      for (int i = 0; i < lines.length; i++) {
+        // Skip status bar clock noise
+        if (_isNoiseLine(lines[i], i, lines.length)) continue;
+        
+        var timeMatch = timeRegex.firstMatch(lines[i]);
+        if (timeMatch != null) {
+          final matchedStr = timeMatch.group(0)!;
+          if (matchedStr.contains('.')) {
+            // Jika ada 3 angka di belakang titik, itu ribuan bukan menit (misal 10.000)
+            final parts = matchedStr.split('.');
+            if (parts.length > 1 && parts[1].length == 3) {
+              continue;
+            }
+          }
+          
+          hour = int.tryParse(timeMatch.group(1)!) ?? hour;
+          minute = int.tryParse(timeMatch.group(2)!) ?? minute;
+          if (timeMatch.group(3) != null) {
+            second = int.tryParse(timeMatch.group(3)!) ?? second;
+          }
+          timeFound = true;
+          break;
+        }
+      }
+    }
+
+    try {
+      date = DateTime(year, month, day, hour, minute, second);
+    } catch (_) {
+      date = DateTime.now();
     }
 
     // ── 3. Ekstraksi Nominal Total Belanja ──
@@ -309,12 +371,16 @@ Kembalikan HANYA teks JSON tersebut tanpa penjelasan tambahan apa pun.
       suggestedCategory = 'Makanan & Minuman';
     } else if (fullTextUpper.contains(RegExp(r'(PERTAMINA|BENSIN|SHELL|SPBU|PARKIR|GRAB|GOJEK|OJOL|BENSIN|TRANSPORT|TRANSIT)'))) {
       suggestedCategory = 'Transportasi';
-    } else if (fullTextUpper.contains(RegExp(r'(INDOMARET|ALFAMART|ALFAMI|MART|SUPERMARKET|HYPERMARKET|MALL|BELANJA|GROCERY|WARUNG|MINIMARKET)'))) {
-      suggestedCategory = 'Belanja';
-    } else if (fullTextUpper.contains(RegExp(r'(LISTRIK|PLN|PDAM|WIFI|INTERNET|PULSA|TELEPON|SPEEDY|BPJS)'))) {
-      suggestedCategory = 'Tagihan';
-    } else if (fullTextUpper.contains(RegExp(r'(BIOSKOP|XXI|TIKET|NONTON|GAME|PLAYSTATION|KARAOKE|REFLEKSI)'))) {
-      suggestedCategory = 'Hiburan';
+    } else if (fullTextUpper.contains(RegExp(r'(WIFI|INTERNET|INDIHOME|BIZNET|SPEEDY)'))) {
+      suggestedCategory = 'WiFi & Internet';
+    } else if (fullTextUpper.contains(RegExp(r'(INDOMARET|ALFAMART|ALFAMI|MART|SUPERMARKET|HYPERMARKET|MALL|BELANJA|GROCERY|PASAR|MINIMARKET|BIOSKOP|XXI|TIKET|NONTON|GAME|PLAYSTATION|KARAOKE|REFLEKSI)'))) {
+      suggestedCategory = 'Belanja & Hiburan';
+    } else if (fullTextUpper.contains(RegExp(r'(APOTEK|OBAT|KLINIK|DOKTER|RUMAH SAKIT|HERBAL|MEDIS)'))) {
+      suggestedCategory = 'Kesehatan';
+    } else if (fullTextUpper.contains(RegExp(r'(KOS|KONTRAKAN|Sewa|RUMAH|APARTEMEN)'))) {
+      suggestedCategory = 'Kos & Rumah';
+    } else {
+      suggestedCategory = 'Lainnya';
     }
 
     return OcrResultModel(

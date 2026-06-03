@@ -97,7 +97,7 @@ class _OcrScannerSheetState extends State<OcrScannerSheet> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
@@ -115,10 +115,45 @@ class _OcrScannerSheetState extends State<OcrScannerSheet> {
         );
       },
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+    if (pickedDate != null) {
+      if (!context.mounted) return;
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_selectedDate),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: AppColors.primary,
+                onPrimary: Colors.white,
+                onSurface: AppColors.textPrimary,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+      if (pickedTime != null) {
+        setState(() {
+          _selectedDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      } else {
+        setState(() {
+          _selectedDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            _selectedDate.hour,
+            _selectedDate.minute,
+          );
+        });
+      }
     }
   }
 
@@ -392,7 +427,7 @@ class _OcrScannerSheetState extends State<OcrScannerSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'TANGGAL STRUK',
+                              'TANGGAL & WAKTU STRUK',
                               style: TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 9,
@@ -402,7 +437,7 @@ class _OcrScannerSheetState extends State<OcrScannerSheet> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              Formatters.formatDate(_selectedDate),
+                              Formatters.formatDateTime(_selectedDate),
                               style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 14,

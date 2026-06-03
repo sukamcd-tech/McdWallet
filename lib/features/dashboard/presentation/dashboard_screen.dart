@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/utils/formatters.dart';
@@ -29,6 +35,521 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _selectedPeriod = 'month';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdates();
+    });
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
+      // 1. Cek Shared Preferences untuk versi terakhir yang dilihat
+      final prefs = await SharedPreferences.getInstance();
+      final lastSeenVersion = prefs.getString('last_seen_version');
+
+      // Ambil rilisan terbaru berdasarkan tanggal dibuat (created_at) paling baru
+      final response = await Supabase.instance.client
+          .from('app_releases')
+          .select()
+          .eq('app_name', 'McdWallet')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null) {
+        final latestVersion = response['version'] as String;
+        final forceUpdate = response['force_update'] as bool? ?? false;
+        final changelogList = response['changelog'] as List?;
+        final releaseDate = response['release_date'] as String?;
+
+        if (_isVersionGreater(latestVersion, currentVersion)) {
+          if (!mounted) return;
+          _showUpdateBottomSheet(
+            context: context,
+            latestVersion: latestVersion,
+            forceUpdate: forceUpdate,
+            releaseDate: releaseDate,
+            changelog: changelogList,
+          );
+          return; // Hentikan di sini jika ada update
+        }
+      }
+
+      // 2. Jika tidak ada update, cek apakah user baru saja mengupdate aplikasi
+      if (lastSeenVersion != null && _isVersionGreater(currentVersion, lastSeenVersion)) {
+        // Ambil data rilis versi sekarang dari database untuk menampilkan changelog
+        final currentReleaseResponse = await Supabase.instance.client
+            .from('app_releases')
+            .select()
+            .eq('app_name', 'McdWallet')
+            .eq('version', currentVersion)
+            .maybeSingle();
+
+        if (currentReleaseResponse != null) {
+          final changelogList = currentReleaseResponse['changelog'] as List?;
+          final releaseDate = currentReleaseResponse['release_date'] as String?;
+
+          if (!mounted) return;
+          _showWhatNewBottomSheet(
+            context: context,
+            version: currentVersion,
+            releaseDate: releaseDate,
+            changelog: changelogList,
+          );
+        }
+
+        // Simpan versi sekarang sebagai versi terakhir yang dilihat
+        await prefs.setString('last_seen_version', currentVersion);
+      } else if (lastSeenVersion == null) {
+        // Simpan versi sekarang jika baru pertama kali menjalankan check versi di instalasi ini
+        await prefs.setString('last_seen_version', currentVersion);
+      }
+    } catch (e) {
+      debugPrint('Error checking for updates: $e');
+    }
+  }
+
+  bool _isVersionGreater(String newVersion, String currentVersion) {
+    // Bersihkan build number (+1) atau pre-release suffix (-beta) jika ada
+    final cleanNew = newVersion.split('+')[0].split('-')[0];
+    final cleanCurrent = currentVersion.split('+')[0].split('-')[0];
+
+    List<int> newParts = cleanNew.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> currentParts = cleanCurrent.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    
+    int maxLength = newParts.length > currentParts.length ? newParts.length : currentParts.length;
+    for (int i = 0; i < maxLength; i++) {
+      int newPart = i < newParts.length ? newParts[i] : 0;
+      int currentPart = i < currentParts.length ? currentParts[i] : 0;
+      if (newPart > currentPart) return true;
+      if (newPart < currentPart) return false;
+    }
+    return false;
+  }
+
+  void _showWhatNewBottomSheet({
+    required BuildContext context,
+    required String version,
+    String? releaseDate,
+    List? changelog,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: true,
+      enableDrag: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        LucideIcons.sparkles,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Berhasil Diperbarui!',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Outfit',
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Selamat datang di versi v$version${releaseDate != null ? ' ($releaseDate)' : ''}',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                if (changelog != null && changelog.isNotEmpty) ...[
+                  const Text(
+                    'Daftar Perubahan:',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: MarkdownBody(
+                        data: changelog.map((item) {
+                          if (item is Map) {
+                            final text = item['text'] ?? '';
+                            final type = item['type'] ?? 'new';
+                            if (text.startsWith('#') || text.startsWith('*') || text.startsWith('-')) {
+                              return text;
+                            }
+                            if (type == 'fix') {
+                              return '* **[Perbaikan]** $text';
+                            } else if (type == 'improve') {
+                              return '* **[Peningkatan]** $text';
+                            } else {
+                              return '* $text';
+                            }
+                          }
+                          final strText = item.toString();
+                          if (strText.startsWith('#') || strText.startsWith('*') || strText.startsWith('-')) {
+                            return strText;
+                          }
+                          return '* $strText';
+                        }).join('\n'),
+                        styleSheet: MarkdownStyleSheet(
+                          p: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                          h1: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            height: 1.4,
+                          ),
+                          h2: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            height: 1.4,
+                          ),
+                          h3: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            height: 1.4,
+                          ),
+                          h2Padding: const EdgeInsets.only(top: 8, bottom: 4),
+                          h3Padding: const EdgeInsets.only(top: 6, bottom: 2),
+                          listBullet: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Mulai Gunakan',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showUpdateBottomSheet({
+    required BuildContext context,
+    required String latestVersion,
+    required bool forceUpdate,
+    String? releaseDate,
+    List? changelog,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: !forceUpdate,
+      enableDrag: !forceUpdate,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return PopScope(
+          canPop: !forceUpdate,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!forceUpdate)
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: forceUpdate 
+                              ? AppColors.expense.withOpacity(0.12)
+                              : AppColors.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          LucideIcons.arrowUpCircle,
+                          color: forceUpdate ? AppColors.expense : AppColors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              forceUpdate ? 'Pembaruan Wajib!' : 'Pembaruan Tersedia',
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Outfit',
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Versi Terbaru: v$latestVersion${releaseDate != null ? ' ($releaseDate)' : ''}',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  if (changelog != null && changelog.isNotEmpty) ...[
+                    const Text(
+                      'Yang Baru:',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 180),
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: MarkdownBody(
+                          data: changelog.map((item) {
+                            if (item is Map) {
+                              final text = item['text'] ?? '';
+                              final type = item['type'] ?? 'new';
+                              if (text.startsWith('#') || text.startsWith('*') || text.startsWith('-')) {
+                                return text;
+                              }
+                              if (type == 'fix') {
+                                return '* **[Perbaikan]** $text';
+                              } else if (type == 'improve') {
+                                return '* **[Peningkatan]** $text';
+                              } else {
+                                return '* $text';
+                              }
+                            }
+                            final strText = item.toString();
+                            if (strText.startsWith('#') || strText.startsWith('*') || strText.startsWith('-')) {
+                              return strText;
+                            }
+                            return '* $strText';
+                          }).join('\n'),
+                          styleSheet: MarkdownStyleSheet(
+                            p: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              height: 1.4,
+                            ),
+                            h1: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              height: 1.4,
+                            ),
+                            h2: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              height: 1.4,
+                            ),
+                            h3: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              height: 1.4,
+                            ),
+                            listBullet: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  Row(
+                    children: [
+                      if (!forceUpdate) ...[
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(color: AppColors.border),
+                              ),
+                            ),
+                            child: const Text(
+                              'Tutup',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _redirectToDownloadPage(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: forceUpdate ? AppColors.expense : AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Update Sekarang',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _redirectToDownloadPage() async {
+    Uri url;
+    if (kDebugMode) {
+      url = Uri.parse('https:www.sukamcd.tech/projects/mcdwallet/download');
+    } else {
+      url = Uri.parse('https:www.sukamcd.tech/projects/mcdwallet/download');
+    }
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        final prodUrl = Uri.parse('https:www.sukamcd.tech/projects/mcdwallet/download');
+        if (await canLaunchUrl(prodUrl)) {
+          await launchUrl(prodUrl, mode: LaunchMode.externalApplication);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
+  }
 
   void _showExportSheet(BuildContext context, dynamic transactions) {
     showModalBottomSheet(
@@ -125,7 +646,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
               // ─── Quick Actions ───
               _buildQuickActions(),
-              const SizedBox(height: 36),
+              const SizedBox(height: 16),
+
+
 
               // ─── Forex Monitoring ───
               const ForexDashboardWidget(),

@@ -109,22 +109,20 @@ class AiCategoryService {
         'taksi', 'taxi', 'parkir', 'tol', 'kereta', 'krl', 'mrt', 'lrt', 'bus', 
         'tiket pesawat', 'travel', 'ojol', 'angkut', 'go-ride', 'grabcar', 'gocar'
       ],
-      'Belanja': [
+      'Belanja & Hiburan': [
         'belanja', 'indomaret', 'alfamart', 'alfamidi', 'supermarket', 'hypermart', 
         'transmart', 'mall', 'tokopedia', 'shopee', 'lazada', 'baju', 'celana', 
         'sepatu', 'kaos', 'grocery', 'pasar', 'minimarket', 'watsons', 'guardian', 
-        'wardah', 'makeup', 'skincare', 'jaket', 'tas', 'aksesoris'
-      ],
-      'Tagihan': [
-        'listrik', 'pln', 'pdam', 'air', 'wifi', 'internet', 'indihome', 'biznet', 
-        'pulsa', 'kuota', 'telkom', 'bpjs', 'pajak', 'asuransi', 'netflix', 
-        'spotify', 'langganan', 'subs', 'subscription', 'cicilan', 'kosan', 
-        'kontrakan', 'iuran', 'tagihan', 'token'
-      ],
-      'Hiburan': [
+        'wardah', 'makeup', 'skincare', 'jaket', 'tas', 'aksesoris',
         'hiburan', 'nonton', 'bioskop', 'cinema', 'xxi', 'cgv', 'game', 'topup game', 
         'karaoke', 'rekreasi', 'liburan', 'wisata', 'healing', 'traveling', 'tiket masuk',
         'dufan', 'pantai', 'hotel', 'staycation', 'konser', 'playstation'
+      ],
+      'WiFi & Internet': [
+        'wifi', 'internet', 'indihome', 'biznet', 'speedy', 'pulsa', 'kuota', 'telkom', 'token'
+      ],
+      'Kos & Rumah': [
+        'kosan', 'kontrakan', 'iuran', 'tagihan', 'sewa', 'rumah', 'apartemen', 'kos'
       ],
       'Kesehatan': [
         'obat', 'apotek', 'sakit', 'dokter', 'klinik', 'puskesmas', 'vitamin', 
@@ -132,7 +130,7 @@ class AiCategoryService {
       ],
       'Pendidikan': [
         'sekolah', 'kuliah', 'spp', 'buku', 'kursus', 'seminar', 'les', 'udemy', 
-        'coursera', 'pendaftaran', 'sks', 'wisuda', 'atk', 'pulpen', 'pensil'
+        'coursera', 'pendaftaran', 'sks', 'wisuda', 'atk', 'pulpen', 'pensil', 'kas', 'uang kas'
       ],
       'Gaji': [
         'gaji', 'salary', 'payday', 'upah', 'honor', 'omset', 'omzet', 'revenue',

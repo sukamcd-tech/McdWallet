@@ -268,16 +268,84 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       );
                     } else if (item is String) {
                       // Date Header
+                      final entry = grouped.firstWhere(
+                        (e) => e.key == item,
+                        orElse: () => MapEntry(item, []),
+                      );
+                      final groupTxs = entry.value;
+                      double groupIncome = 0.0;
+                      double groupExpense = 0.0;
+                      String currencyCode = 'IDR';
+                      
+                      if (groupTxs.isNotEmpty) {
+                        currencyCode = groupTxs.first.wallet?.currencyCode ?? 'IDR';
+                        for (var tx in groupTxs) {
+                          if (tx.type == 'income') {
+                            groupIncome += tx.amount;
+                          } else if (tx.type == 'expense') {
+                            groupExpense += tx.amount;
+                          } else if (tx.type == 'transfer' && tx.adminFee != null) {
+                            groupExpense += tx.adminFee!;
+                          }
+                        }
+                      }
+
                       return Padding(
-                        padding: const EdgeInsets.only(top: 16, bottom: 10, left: 4),
-                        child: Text(
-                          item.toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
+                        padding: const EdgeInsets.only(top: 16, bottom: 10, left: 4, right: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              item.toUpperCase(),
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (groupIncome > 0) ...[
+                                  const Icon(
+                                    LucideIcons.trendingUp,
+                                    size: 10,
+                                    color: AppColors.income,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    Formatters.formatCurrencyWithCode(groupIncome, currencyCode),
+                                    style: const TextStyle(
+                                      color: AppColors.income,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'Outfit',
+                                    ),
+                                  ),
+                                ],
+                                if (groupIncome > 0 && groupExpense > 0)
+                                  const SizedBox(width: 10),
+                                if (groupExpense > 0) ...[
+                                  const Icon(
+                                    LucideIcons.trendingDown,
+                                    size: 10,
+                                    color: AppColors.expense,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    Formatters.formatCurrencyWithCode(groupExpense, currencyCode),
+                                    style: const TextStyle(
+                                      color: AppColors.expense,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'Outfit',
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
                       );
                     } else if (item is TransactionModel) {

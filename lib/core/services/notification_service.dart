@@ -77,6 +77,14 @@ class NotificationService {
         // Ambil token FCM dan simpan ke profil di database Supabase
         await registerFcmToken(supabase);
 
+        // Subscribe ke topik pembaruan rilis
+        try {
+          await messaging.subscribeToTopic('mcdwallet_updates');
+          debugPrint('Subscribed to topic: mcdwallet_updates');
+        } catch (topicError) {
+          debugPrint('Failed to subscribe to topic mcdwallet_updates: $topicError');
+        }
+
         // Listener pesan FCM saat aplikasi di foreground
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           debugPrint('FCM Foreground message received: ${message.notification?.title}');
