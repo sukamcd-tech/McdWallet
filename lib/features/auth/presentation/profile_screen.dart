@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/app_card.dart';
@@ -172,7 +173,26 @@ class ProfileScreen extends ConsumerWidget {
                               'TENTANG',
                               'McdWallet',
                               onTap: () async {
-                                final uri = Uri.parse('https://github.com/SukaMCD/McdWallet');
+                                final uri = Uri.parse('https://github.com/sukamcd-tech/McdWallet');
+                                try {
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                } catch (_) {
+                                  await launchUrl(uri, mode: LaunchMode.platformDefault);
+                                }
+                              },
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Divider(color: AppColors.border, height: 1, thickness: 0.5),
+                            ),
+                            _buildInfoRow(
+                              LucideIcons.shield,
+                              'KEBIJAKAN PRIVASI',
+                              'Privacy Policy',
+                              onTap: () async {
+                                final uri = Uri.parse(kDebugMode
+                                    ? 'https://www.sukamcd.tech/projects/mcdwallet/privacy'
+                                    : 'https://sukamcd.com/projects/mcdwallet/privacy');
                                 try {
                                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                                 } catch (_) {
