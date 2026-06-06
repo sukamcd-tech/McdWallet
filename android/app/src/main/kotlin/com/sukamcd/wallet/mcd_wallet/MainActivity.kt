@@ -35,8 +35,10 @@ class MainActivity : FlutterFragmentActivity() {
 
                 "saveUserId" -> {
                     val userId = call.argument<String>("userId") ?: ""
+                    val accessToken = call.argument<String>("accessToken") ?: ""
                     with(sharedPref.edit()) {
                         putString("user_id", userId)
+                        putString("access_token", accessToken)
                         apply()
                     }
                     // Langsung trigger update widget dengan Supabase query
@@ -47,6 +49,7 @@ class MainActivity : FlutterFragmentActivity() {
                 "clearUserId" -> {
                     with(sharedPref.edit()) {
                         remove("user_id")
+                        remove("access_token")
                         remove("today_expense_amount")
                         remove("today_expense_date")
                         apply()

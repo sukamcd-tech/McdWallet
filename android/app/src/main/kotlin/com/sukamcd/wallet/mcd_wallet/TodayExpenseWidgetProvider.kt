@@ -35,6 +35,7 @@ class TodayExpenseWidgetProvider : AppWidgetProvider() {
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
         val sharedPref = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
         val userId = sharedPref.getString("user_id", null)
+        val accessToken = sharedPref.getString("access_token", null)
 
         // Setup click intent (buka app)
         val launchIntent = Intent(context, MainActivity::class.java)
@@ -52,7 +53,9 @@ class TodayExpenseWidgetProvider : AppWidgetProvider() {
         // Fetch dari Supabase secara async
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val total = fetchTodayExpenseFromSupabase(userId)
+                android.util.Log.d("TodayExpenseWidget", "Fetching today's expense for user: $userId")
+                val total = fetchTodayExpenseFromSupabase(userId, accessToken)
+                android.util.Log.d("TodayExpenseWidget", "Fetched total: $total")
 
                 // Simpan ke cache SharedPreferences
                 val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -67,6 +70,7 @@ class TodayExpenseWidgetProvider : AppWidgetProvider() {
                     appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
             } catch (e: Exception) {
+                android.util.Log.e("TodayExpenseWidget", "Error fetching from Supabase", e)
                 // Jika gagal (offline), tampilkan data cache
                 withContext(Dispatchers.Main) {
                     showCachedData(context, appWidgetManager, appWidgetId, pendingIntent, sharedPref)
@@ -75,12 +79,12 @@ class TodayExpenseWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun fetchTodayExpenseFromSupabase(userId: String): Double {
+    private fun fetchTodayExpenseFromSupabase(userId: String, accessToken: String?): Double {
         val supabaseUrl = "https://lvjuyzemouqryeucznof.supabase.co"
         val anonKey = "sb_publishable_OybqH6e8p_tIPUqVOAk6ag_XCgyuBlU"
 
-        // Hitung rentang hari ini (UTC offset +07:00)
-        val tz = java.util.TimeZone.getTimeZone("Asia/Jakarta")
+        // Hitung rentang hari ini dengan timezone lokal perangkat
+        val tz = java.util.TimeZone.getDefault()
         val cal = java.util.Calendar.getInstance(tz)
         cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
         cal.set(java.util.Calendar.MINUTE, 0)
@@ -90,23 +94,26 @@ class TodayExpenseWidgetProvider : AppWidgetProvider() {
         cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
         val endOfDay = cal.time
 
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        // Gunakan format UTC dengan suffix 'Z' agar Supabase mengenali zona waktu UTC secara eksplisit
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
         sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
         val startStr = sdf.format(startOfDay)
         val endStr = sdf.format(endOfDay)
 
         val endpoint = "$supabaseUrl/rest/v1/transactions" +
-            "?select=amount,type,date" +
+            "?select=amount,amount_in_idr,type,date" +
             "&user_id=eq.$userId" +
             "&type=eq.expense" +
             "&date=gte.$startStr" +
             "&date=lt.$endStr"
 
+        android.util.Log.d("TodayExpenseWidget", "Supabase query URL: $endpoint")
+
         val url = URL(endpoint)
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.setRequestProperty("apikey", anonKey)
-        conn.setRequestProperty("Authorization", "Bearer $anonKey")
+        conn.setRequestProperty("Authorization", if (!accessToken.isNullOrBlank()) "Bearer $accessToken" else "Bearer $anonKey")
         conn.setRequestProperty("Accept", "application/json")
         conn.connectTimeout = 8000
         conn.readTimeout = 8000
@@ -115,10 +122,17 @@ class TodayExpenseWidgetProvider : AppWidgetProvider() {
             val responseCode = conn.responseCode
             if (responseCode == 200) {
                 val body = conn.inputStream.bufferedReader().readText()
+                android.util.Log.d("TodayExpenseWidget", "Supabase response body: $body")
                 val arr = JSONArray(body)
                 var total = 0.0
                 for (i in 0 until arr.length()) {
-                    total += arr.getJSONObject(i).optDouble("amount", 0.0)
+                    val obj = arr.getJSONObject(i)
+                    val amountInIdr = if (obj.isNull("amount_in_idr")) {
+                        obj.optDouble("amount", 0.0)
+                    } else {
+                        obj.optDouble("amount_in_idr", 0.0)
+                    }
+                    total += amountInIdr
                 }
                 total
             } else {
