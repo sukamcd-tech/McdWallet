@@ -53,11 +53,11 @@ class TransactionModel {
       targetAmount: json['target_amount'] != null ? (json['target_amount'] as num).toDouble() : null,
       type: json['type'] as String,
       description: json['description'] as String?,
-      date: DateTime.parse(json['date'] as String),
+      date: DateTime.parse(json['date'] as String).toLocal(),
       attachmentPath: json['attachment_path'] as String?,
       toWalletId: json['to_wallet_id'] as String?,
       adminFee: json['admin_fee'] != null ? (json['admin_fee'] as num).toDouble() : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       wallet: json['wallets'] != null ? WalletModel.fromJson(json['wallets'] as Map<String, dynamic>) : null,
       toWallet: json['to_wallets'] != null ? WalletModel.fromJson(json['to_wallets'] as Map<String, dynamic>) : null,
       category: json['categories'] != null ? CategoryModel.fromJson(json['categories'] as Map<String, dynamic>) : null,
@@ -74,11 +74,11 @@ class TransactionModel {
       'target_amount': targetAmount,
       'type': type,
       'description': description,
-      'date': date.toIso8601String(),
+      'date': date.toUtc().toIso8601String(),
       'attachment_path': attachmentPath,
       'to_wallet_id': toWalletId,
       'admin_fee': adminFee,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
     if (id.isNotEmpty) {
       json['id'] = id;

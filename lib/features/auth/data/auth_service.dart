@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../../core/constants/config.dart';
 import '../domain/profile_model.dart';
 
 class AuthService {
@@ -37,6 +39,32 @@ class AuthService {
     return await _supabase.auth.signInWithPassword(
       email: email,
       password: password,
+    );
+  }
+
+  // Login menggunakan Google OAuth
+  Future<AuthResponse> signInWithGoogle() async {
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      serverClientId: AppConfig.googleWebClientId.isEmpty ? null : AppConfig.googleWebClientId,
+    );
+    
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) {
+      throw 'Google Sign-In dibatalkan oleh pengguna.';
+    }
+    
+    final googleAuth = await googleUser.authentication;
+    final accessToken = googleAuth.accessToken;
+    final idToken = googleAuth.idToken;
+
+    if (accessToken == null || idToken == null) {
+      throw 'Gagal mengambil token dari Google.';
+    }
+
+    return await _supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
     );
   }
 
@@ -81,7 +109,7 @@ class AuthService {
   }) async {
     final updates = {
       'id': userId,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
       if (fullName != null) 'full_name': fullName,
       if (avatarUrl != null) 'avatar_url': avatarUrl,
       if (currency != null) 'currency': currency,

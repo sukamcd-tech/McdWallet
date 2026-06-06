@@ -22,7 +22,7 @@ class ProfileModel {
       fullName: json['full_name'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       currency: json['currency'] as String? ?? 'IDR',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 
@@ -33,7 +33,7 @@ class ProfileModel {
       'full_name': fullName,
       'avatar_url': avatarUrl,
       'currency': currency,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
 

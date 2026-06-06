@@ -48,12 +48,12 @@ class SavingsGoalModel {
       name: json['name'] as String,
       targetAmount: (json['target_amount'] as num).toDouble(),
       currentAmount: (json['current_amount'] as num?)?.toDouble() ?? 0.0,
-      targetDate: json['target_date'] != null ? DateTime.parse(json['target_date'] as String) : null,
+      targetDate: json['target_date'] != null ? DateTime.parse(json['target_date'] as String).toLocal() : null,
       color: json['color'] as String? ?? '#FF9500',
       icon: json['icon'] as String? ?? 'savings',
       savingInterval: json['saving_interval'] as String? ?? 'custom',
       savingAmountPerInterval: (json['saving_amount_per_interval'] as num?)?.toDouble() ?? 0.0,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 
@@ -68,7 +68,7 @@ class SavingsGoalModel {
       'icon': icon,
       'saving_interval': savingInterval,
       'saving_amount_per_interval': savingAmountPerInterval,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
     if (id.isNotEmpty) {
       json['id'] = id;

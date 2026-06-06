@@ -27,7 +27,7 @@ class WalletModel {
       balance: (json['balance'] as num).toDouble(),
       color: json['color'] as String? ?? '#4CAF50',
       icon: json['icon'] as String? ?? 'account_balance_wallet',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       currencyCode: json['currency_code'] as String? ?? 'IDR',
     );
   }
@@ -39,7 +39,7 @@ class WalletModel {
       'balance': balance,
       'color': color,
       'icon': icon,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
       'currency_code': currencyCode,
     };
     if (id.isNotEmpty) {

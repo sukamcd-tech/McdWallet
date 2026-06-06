@@ -235,7 +235,9 @@ final allTransactionsProvider = StateNotifierProvider<AllTransactionsNotifier, A
 
   authState.whenData((user) {
     if (user != null) {
-      notifier.loadAllTransactions(user.id);
+      final supabase = ref.read(supabaseClientProvider);
+      final token = supabase.auth.currentSession?.accessToken;
+      notifier.loadAllTransactions(user.id, token: token);
     } else {
       notifier.clear();
     }
@@ -249,13 +251,13 @@ class AllTransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionM
 
   AllTransactionsNotifier(this._service) : super(const AsyncValue.loading());
 
-  Future<void> loadAllTransactions(String userId) async {
+  Future<void> loadAllTransactions(String userId, {String? token}) async {
     state = const AsyncValue.loading();
     try {
       final txs = await _service.fetchTransactions(userId);
       state = AsyncValue.data(txs);
-      // Simpan user_id agar widget bisa query Supabase mandiri (tanpa app aktif)
-      WidgetService.saveUserId(userId);
+      // Simpan user_id dan token agar widget bisa query Supabase mandiri (tanpa app aktif)
+      WidgetService.saveUserId(userId, token);
       _updateHomescreenWidget(txs);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -278,7 +280,7 @@ class AllTransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionM
       final isToday = (t.date.isAfter(startOfToday) || t.date.isAtSameMomentAs(startOfToday)) &&
           t.date.isBefore(endOfToday);
       return isExpense && isToday;
-    }).fold(0.0, (sum, t) => sum + t.amount);
+    }).fold(0.0, (sum, t) => sum + (t.amountInIdr ?? t.amount));
 
     WidgetService.updateTodayExpense(totalToday);
   }
@@ -356,7 +358,8 @@ class TransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionMode
         await loadTransactions(user.id, walletId: walletId, categoryId: categoryId, type: type);
 
         // Refresh allTransactionsProvider (unfiltered) and wait for it!
-        await _ref.read(allTransactionsProvider.notifier).loadAllTransactions(user.id);
+        final token = _ref.read(supabaseClientProvider).auth.currentSession?.accessToken;
+        await _ref.read(allTransactionsProvider.notifier).loadAllTransactions(user.id, token: token);
 
         // Pengecekan sisa anggaran terlampaui setelah transaksi ditambahkan (jika pengeluaran)
         if (transaction.type == 'expense') {
@@ -389,7 +392,8 @@ class TransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionMode
         await loadTransactions(user.id, walletId: walletId, categoryId: categoryId, type: type);
 
         // Refresh allTransactionsProvider (unfiltered) and wait for it!
-        await _ref.read(allTransactionsProvider.notifier).loadAllTransactions(user.id);
+        final token = _ref.read(supabaseClientProvider).auth.currentSession?.accessToken;
+        await _ref.read(allTransactionsProvider.notifier).loadAllTransactions(user.id, token: token);
 
         // Pengecekan sisa anggaran terlampaui setelah transaksi ditambahkan (jika pengeluaran)
         if (newTx.type == 'expense') {
@@ -519,7 +523,8 @@ class TransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionMode
         loadTransactions(user.id, walletId: walletId, categoryId: categoryId, type: type);
 
         // Refresh allTransactionsProvider
-        _ref.read(allTransactionsProvider.notifier).loadAllTransactions(user.id);
+        final token = _ref.read(supabaseClientProvider).auth.currentSession?.accessToken;
+        _ref.read(allTransactionsProvider.notifier).loadAllTransactions(user.id, token: token);
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);

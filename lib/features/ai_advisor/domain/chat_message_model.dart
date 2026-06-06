@@ -16,7 +16,7 @@ class ChatMessageModel {
       id: json['id'] as String,
       role: json['role'] as String,
       content: json['content'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 
@@ -25,7 +25,7 @@ class ChatMessageModel {
       'id': id,
       'role': role,
       'content': content,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
 

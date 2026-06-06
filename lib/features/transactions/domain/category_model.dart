@@ -25,7 +25,7 @@ class CategoryModel {
       type: json['type'] as String,
       color: json['color'] as String? ?? '#607D8B',
       icon: json['icon'] as String? ?? 'category',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 
@@ -36,7 +36,7 @@ class CategoryModel {
       'type': type,
       'color': color,
       'icon': icon,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
     if (id.isNotEmpty) {
       json['id'] = id;

@@ -32,9 +32,9 @@ class BudgetModel {
       categoryId: json['category_id'] as String?,
       amountLimit: (json['amount_limit'] as num).toDouble(),
       period: json['period'] as String? ?? 'monthly',
-      startDate: DateTime.parse(json['start_date'] as String),
-      endDate: DateTime.parse(json['end_date'] as String),
-      createdAt: DateTime.parse(json['created_at'] as String),
+      startDate: DateTime.parse(json['start_date'] as String).toLocal(),
+      endDate: DateTime.parse(json['end_date'] as String).toLocal(),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       category: json['categories'] != null ? CategoryModel.fromJson(json['categories'] as Map<String, dynamic>) : null,
     );
   }
@@ -47,7 +47,7 @@ class BudgetModel {
       'period': period,
       'start_date': startDate.toIso8601String().substring(0, 10), // Hanya YYYY-MM-DD
       'end_date': endDate.toIso8601String().substring(0, 10),
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
     if (id.isNotEmpty) {
       json['id'] = id;

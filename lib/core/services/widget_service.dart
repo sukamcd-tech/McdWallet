@@ -19,10 +19,13 @@ class WidgetService {
     }
   }
 
-  /// Simpan user_id ke SharedPreferences agar widget bisa query Supabase secara mandiri
-  static Future<void> saveUserId(String userId) async {
+  /// Simpan user_id dan accessToken ke SharedPreferences agar widget bisa query Supabase secara mandiri
+  static Future<void> saveUserId(String userId, String? accessToken) async {
     try {
-      await _channel.invokeMethod('saveUserId', {'userId': userId});
+      await _channel.invokeMethod('saveUserId', {
+        'userId': userId,
+        'accessToken': accessToken ?? '',
+      });
     } on PlatformException catch (_) {}
   }
 
