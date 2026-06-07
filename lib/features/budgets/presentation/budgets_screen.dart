@@ -13,15 +13,37 @@ import '../../transactions/providers/transactions_provider.dart';
 import '../../transactions/domain/category_model.dart';
 import '../domain/budget_model.dart';
 import '../providers/budgets_provider.dart';
+import 'budget_detail_screen.dart';
 
 import '../../savings/domain/savings_goal_model.dart';
 import '../../savings/providers/savings_provider.dart';
 import '../../savings/presentation/widgets/add_savings_goal_sheet.dart';
 import '../../savings/presentation/widgets/deposit_savings_sheet.dart';
 import '../../transactions/presentation/widgets/manage_categories_sheet.dart';
+import '../../savings/presentation/savings_goal_detail_screen.dart';
 
-class BudgetsScreen extends ConsumerWidget {
+class BudgetsScreen extends ConsumerStatefulWidget {
   const BudgetsScreen({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<BudgetsScreen> createState() => _BudgetsScreenState();
+}
+
+class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialTab = ref.read(activeBudgetsTabProvider);
+    _pageController = PageController(initialPage: initialTab == 'budgets' ? 0 : 1);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   void _showAddBudgetSheet(BuildContext context) {
     showModalBottomSheet(
@@ -41,12 +63,12 @@ class BudgetsScreen extends ConsumerWidget {
     );
   }
 
-  void _showDepositSavingsSheet(BuildContext context, SavingsGoalModel goal) {
+  void _showDepositSavingsSheet(BuildContext context, SavingsGoalModel goal, {required bool isDeposit}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DepositSavingsSheet(goal: goal),
+      builder: (context) => DepositSavingsSheet(goal: goal, isDeposit: isDeposit),
     );
   }
 
@@ -129,9 +151,21 @@ class BudgetsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final budgetsProgressAsync = ref.watch(budgetsProgressProvider);
     final activeTab = ref.watch(activeBudgetsTabProvider);
+
+    // Sync PageView when activeBudgetsTabProvider changes externally/programmatically
+    ref.listen<String>(activeBudgetsTabProvider, (previous, next) {
+      final targetPage = next == 'budgets' ? 0 : 1;
+      if (_pageController.hasClients && _pageController.page?.round() != targetPage) {
+        _pageController.animateToPage(
+          targetPage,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.fastOutSlowIn,
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -239,9 +273,17 @@ class BudgetsScreen extends ConsumerWidget {
           
           // Tab Content Area
           Expanded(
-            child: activeTab == 'budgets'
-                ? _buildBudgetsTab(context, ref, budgetsProgressAsync)
-                : _buildSavingsTab(context, ref),
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                ref.read(activeBudgetsTabProvider.notifier).state = index == 0 ? 'budgets' : 'savings';
+              },
+              physics: const BouncingScrollPhysics(),
+              children: [
+                _buildBudgetsTab(context, ref, budgetsProgressAsync),
+                _buildSavingsTab(context, ref),
+              ],
+            ),
           ),
         ],
       ),
@@ -336,170 +378,188 @@ class BudgetsScreen extends ConsumerWidget {
 
             final bool isExceeded = progress.percentage >= 1.0;
 
-            return AppCard(
-              borderColor: progressColor.withOpacity(0.3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(color: categoryColor, shape: BoxShape.circle),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            categoryName,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: categoryColor.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              periodLabel,
-                              style: TextStyle(color: categoryColor, fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            constraints: const BoxConstraints(),
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(LucideIcons.trash2, color: AppColors.danger, size: 18),
-                            onPressed: () async {
-                              final confirm = await showModalBottomSheet<bool>(
-                                context: context,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) => Container(
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.surface,
-                                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                                    border: Border(top: BorderSide(color: AppColors.border, width: 1.0)),
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BudgetDetailScreen(budget: budget),
+                  ),
+                );
+              },
+              child: AppCard(
+                borderColor: progressColor.withOpacity(0.3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(color: categoryColor, shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  categoryName,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  padding: const EdgeInsets.all(24),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Hapus Anggaran?',
-                                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        'Apakah Anda yakin ingin menghapus anggaran untuk "$categoryName"?',
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      CustomButton(
-                                        text: 'Hapus',
-                                        color: AppColors.danger,
-                                        onPressed: () => Navigator.pop(context, true),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      CustomButton(
-                                        text: 'Batal',
-                                        isOutlined: true,
-                                        onPressed: () => Navigator.pop(context, false),
-                                      ),
-                                    ],
-                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
-                              );
-                              if (confirm == true) {
-                                ref.read(budgetsProvider.notifier).removeBudget(budget.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Anggaran untuk "$categoryName" berhasil dihapus.'),
-                                    backgroundColor: AppColors.success,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: categoryColor.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                periodLabel,
+                                style: TextStyle(color: categoryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(LucideIcons.trash2, color: AppColors.danger, size: 18),
+                              onPressed: () async {
+                                final confirm = await showModalBottomSheet<bool>(
+                                  context: context,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) => Container(
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.surface,
+                                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                      border: Border(top: BorderSide(color: AppColors.border, width: 1.0)),
+                                    ),
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          'Hapus Anggaran?',
+                                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Apakah Anda yakin ingin menghapus anggaran untuk "$categoryName"?',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                                        ),
+                                        const SizedBox(height: 24),
+                                        CustomButton(
+                                          text: 'Hapus',
+                                          color: AppColors.danger,
+                                          onPressed: () => Navigator.pop(context, true),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        CustomButton(
+                                          text: 'Batal',
+                                          isOutlined: true,
+                                          onPressed: () => Navigator.pop(context, false),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${Formatters.formatDateShort(budget.startDate)} - ${Formatters.formatDateShort(budget.endDate)}',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('TERPAKAI', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(
-                            Formatters.formatCurrency(progress.spentAmount),
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text('BATAS LIMIT', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(
-                            Formatters.formatCurrency(budget.amountLimit),
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: progress.percentage.clamp(0.0, 1.0),
-                      minHeight: 8,
-                      backgroundColor: AppColors.surfaceAlt,
-                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${(progress.percentage * 100).toStringAsFixed(0)}% terpakai',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                      ),
-                      Text(
-                        isExceeded
-                            ? 'Melebihi ${Formatters.formatCurrency(progress.remainingAmount.abs())}'
-                            : 'Sisa ${Formatters.formatCurrency(progress.remainingAmount)}',
-                        style: TextStyle(
-                          color: isExceeded ? AppColors.expense : AppColors.income,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                                if (confirm == true) {
+                                  ref.read(budgetsProvider.notifier).removeBudget(budget.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Anggaran untuk "$categoryName" berhasil dihapus.'),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${Formatters.formatDateShort(budget.startDate)} - ${Formatters.formatDateShort(budget.endDate)}',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('TERPAKAI', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(
+                              Formatters.formatCurrency(progress.spentAmount),
+                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text('BATAS LIMIT', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(
+                              Formatters.formatCurrency(budget.amountLimit),
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: progress.percentage.clamp(0.0, 1.0),
+                        minHeight: 8,
+                        backgroundColor: AppColors.surfaceAlt,
+                        valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${(progress.percentage * 100).toStringAsFixed(0)}% terpakai',
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        ),
+                        Text(
+                          isExceeded
+                              ? 'Melebihi ${Formatters.formatCurrency(progress.remainingAmount.abs())}'
+                              : 'Sisa ${Formatters.formatCurrency(progress.remainingAmount)}',
+                          style: TextStyle(
+                            color: isExceeded ? AppColors.expense : AppColors.income,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -626,10 +686,20 @@ class BudgetsScreen extends ConsumerWidget {
                     targetDateLabel = Formatters.formatDateShort(goal.targetDate!);
                   }
 
-                  return AppCard(
-                    borderColor: accentColor.withOpacity(0.3),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SavingsGoalDetailScreen(goal: goal),
+                        ),
+                      );
+                    },
+                    child: AppCard(
+                      borderColor: accentColor.withOpacity(0.3),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -689,7 +759,10 @@ class BudgetsScreen extends ConsumerWidget {
                         ),
                         if (goal.savingInterval != 'custom') ...[
                           const SizedBox(height: 12),
-                          Row(
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               // Chip alokasi (e.g. Harian / Mingguan / Bulanan)
                               Container(
@@ -723,7 +796,6 @@ class BudgetsScreen extends ConsumerWidget {
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
                               // Chip sisa waktu (e.g. Sisa 20 hari lagi)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -854,7 +926,7 @@ class BudgetsScreen extends ConsumerWidget {
                                   const SizedBox(width: 8),
                                 ],
                                 ElevatedButton(
-                                  onPressed: () => _showDepositSavingsSheet(context, goal),
+                                  onPressed: () => _showDepositSavingsSheet(context, goal, isDeposit: true),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
@@ -866,9 +938,31 @@ class BudgetsScreen extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
-                                  child: Text(
-                                    goal.isAchieved ? 'Tarik / Sesuaikan' : 'Tabung / Tarik',
-                                    style: const TextStyle(
+                                  child: const Text(
+                                    'Tabung',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'Outfit',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: () => _showDepositSavingsSheet(context, goal, isDeposit: false),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    side: const BorderSide(color: AppColors.border, width: 1.5),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Tarik',
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       fontFamily: 'Outfit',
@@ -881,8 +975,9 @@ class BudgetsScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                  );
-                },
+                  ),
+                );
+              },
               );
             },
           ),
@@ -1084,7 +1179,7 @@ class _AddBudgetBottomSheetState extends ConsumerState<_AddBudgetBottomSheet> {
                 CustomTextField(
                   controller: _limitController,
                   label: 'BATAS MAKSIMAL (LIMIT)',
-                  hintText: 'Masukkan nominal rupiah, misal: 2000000',
+                  hintText: 'Masukkan nominal rupiah, contoh: 2.000.000',
                   prefixIcon: LucideIcons.coins,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -1136,6 +1231,7 @@ class _AddBudgetBottomSheetState extends ConsumerState<_AddBudgetBottomSheet> {
 
                     return DropdownButtonFormField<String?>(
                       value: _selectedCategory?.id,
+                      isExpanded: true,
                       dropdownColor: AppColors.surface,
                       icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary, size: 18),
                       decoration: const InputDecoration(
@@ -1155,7 +1251,17 @@ class _AddBudgetBottomSheetState extends ConsumerState<_AddBudgetBottomSheet> {
                               children: [
                                 Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                                 const SizedBox(width: 10),
-                                Text(cat.name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                                Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth: MediaQuery.of(context).size.width - 150,
+                                  ),
+                                  child: Text(
+                                    cat.name,
+                                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
                               ],
                             ),
                           );

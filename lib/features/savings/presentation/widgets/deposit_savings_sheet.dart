@@ -12,10 +12,12 @@ import '../../providers/savings_provider.dart';
 
 class DepositSavingsSheet extends ConsumerStatefulWidget {
   final SavingsGoalModel goal;
+  final bool isDeposit;
 
   const DepositSavingsSheet({
     Key? key,
     required this.goal,
+    this.isDeposit = true,
   }) : super(key: key);
 
   @override
@@ -28,8 +30,14 @@ class _DepositSavingsSheetState extends ConsumerState<DepositSavingsSheet> {
   final _noteController = TextEditingController();
 
   WalletModel? _selectedWallet;
-  bool _isDeposit = true; // true = Menabung, false = Tarik Tabungan
+  late bool _isDeposit;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDeposit = widget.isDeposit;
+  }
 
   @override
   void dispose() {
@@ -244,7 +252,7 @@ class _DepositSavingsSheetState extends ConsumerState<DepositSavingsSheet> {
                 CustomTextField(
                   controller: _amountController,
                   label: _isDeposit ? 'NOMINAL DITABUNG' : 'NOMINAL DITARIK',
-                  hintText: 'Masukkan nominal, misal: 250.000',
+                  hintText: 'Masukkan nominal, contoh: 250.000',
                   prefixIcon: LucideIcons.coins,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -288,6 +296,7 @@ class _DepositSavingsSheetState extends ConsumerState<DepositSavingsSheet> {
 
                     return DropdownButtonFormField<String>(
                       value: _selectedWallet?.id,
+                      isExpanded: true,
                       dropdownColor: AppColors.surface,
                       icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary, size: 18),
                       decoration: const InputDecoration(
@@ -309,13 +318,20 @@ class _DepositSavingsSheetState extends ConsumerState<DepositSavingsSheet> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              Text(
-                                isIdr
-                                    ? '${wallet.name} (${Formatters.formatCurrencyWithCode(wallet.balance, wallet.currencyCode)})'
-                                    : '${wallet.name} (Sedang dalam pengembangan)',
-                                style: TextStyle(
-                                  color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
-                                  fontSize: 14,
+                              Container(
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.of(context).size.width - 150,
+                                ),
+                                child: Text(
+                                  isIdr
+                                      ? '${wallet.name} (${Formatters.formatCurrencyWithCode(wallet.balance, wallet.currencyCode)})'
+                                      : '${wallet.name} (Sedang dalam pengembangan)',
+                                  style: TextStyle(
+                                    color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                             ],
@@ -349,8 +365,8 @@ class _DepositSavingsSheetState extends ConsumerState<DepositSavingsSheet> {
                   controller: _noteController,
                   label: 'CATATAN (OPSIONAL)',
                   hintText: _isDeposit 
-                      ? 'Misal: Sisa uang belanja bulanan'
-                      : 'Misal: Untuk service laptop urgent',
+                      ? 'Contoh: Sisa uang belanja bulanan'
+                      : 'Contoh: Biaya servis laptop darurat',
                   prefixIcon: LucideIcons.fileText,
                 ),
                 const SizedBox(height: 30),

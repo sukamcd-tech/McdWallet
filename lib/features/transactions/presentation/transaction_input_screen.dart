@@ -868,6 +868,7 @@ class _TransactionInputScreenState extends ConsumerState<TransactionInputScreen>
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
                               value: _selectedWallet?.id,
+                              isExpanded: true,
                               dropdownColor: AppColors.surface,
                               icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary, size: 18),
                               decoration: const InputDecoration(
@@ -889,13 +890,20 @@ class _TransactionInputScreenState extends ConsumerState<TransactionInputScreen>
                                         ),
                                       ),
                                       const SizedBox(width: 12),
-                                      Text(
-                                        isIdr
-                                            ? '${wallet.name} (${_formatCurrencyWithSymbol(wallet.balance, wallet.currencyCode)})'
-                                            : '${wallet.name} (Sedang dalam pengembangan)',
-                                        style: TextStyle(
-                                          color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
-                                          fontSize: 14,
+                                      Container(
+                                        constraints: BoxConstraints(
+                                          maxWidth: MediaQuery.of(context).size.width - 150,
+                                        ),
+                                        child: Text(
+                                          isIdr
+                                              ? '${wallet.name} (${_formatCurrencyWithSymbol(wallet.balance, wallet.currencyCode)})'
+                                              : '${wallet.name} (Sedang dalam pengembangan)',
+                                          style: TextStyle(
+                                            color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
+                                            fontSize: 14,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ),
                                     ],
@@ -931,6 +939,7 @@ class _TransactionInputScreenState extends ConsumerState<TransactionInputScreen>
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 value: _selectedToWallet?.id,
+                                isExpanded: true,
                                 hint: const Text('Pilih Dompet Tujuan', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
                                 dropdownColor: AppColors.surface,
                                 icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary, size: 18),
@@ -953,13 +962,20 @@ class _TransactionInputScreenState extends ConsumerState<TransactionInputScreen>
                                           ),
                                         ),
                                         const SizedBox(width: 12),
-                                        Text(
-                                          isIdr
-                                              ? '${wallet.name} (${_formatCurrencyWithSymbol(wallet.balance, wallet.currencyCode)})'
-                                              : '${wallet.name} (Sedang dalam pengembangan)',
-                                          style: TextStyle(
-                                            color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
-                                            fontSize: 14,
+                                        Container(
+                                          constraints: BoxConstraints(
+                                            maxWidth: MediaQuery.of(context).size.width - 150,
+                                          ),
+                                          child: Text(
+                                            isIdr
+                                                ? '${wallet.name} (${_formatCurrencyWithSymbol(wallet.balance, wallet.currencyCode)})'
+                                                : '${wallet.name} (Sedang dalam pengembangan)',
+                                            style: TextStyle(
+                                              color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
+                                              fontSize: 14,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
                                           ),
                                         ),
                                       ],
@@ -1024,6 +1040,7 @@ class _TransactionInputScreenState extends ConsumerState<TransactionInputScreen>
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 value: _selectedCategory?.id,
+                                isExpanded: true,
                                 hint: const Text('Pilih Kategori', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
                                 dropdownColor: AppColors.surface,
                                 icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary, size: 18),
@@ -1042,9 +1059,16 @@ class _TransactionInputScreenState extends ConsumerState<TransactionInputScreen>
                                           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                                         ),
                                         const SizedBox(width: 12),
-                                        Text(
-                                          cat.name,
-                                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                                        Container(
+                                          constraints: BoxConstraints(
+                                            maxWidth: MediaQuery.of(context).size.width - 150,
+                                          ),
+                                          child: Text(
+                                            cat.name,
+                                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
                                         ),
                                       ],
                                     ),

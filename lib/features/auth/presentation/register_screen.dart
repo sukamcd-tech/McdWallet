@@ -146,10 +146,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          physics: const ClampingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // ── Header ──
               const Text(
                 'Mulai Perjalanan\nFinansialmu',
@@ -182,7 +184,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     CustomTextField(
                       controller: _fullNameController,
                       label: 'Nama Lengkap',
-                      hintText: 'Contoh: Fabian Wijaya',
+                      hintText: 'Masukkan nama lengkap Anda',
                       prefixIcon: LucideIcons.user,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -196,7 +198,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     CustomTextField(
                       controller: _usernameController,
                       label: 'Username',
-                      hintText: 'Contoh: fabian_w',
+                      hintText: 'Masukkan nama pengguna Anda',
                       prefixIcon: LucideIcons.atSign,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -213,7 +215,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     CustomTextField(
                       controller: _emailController,
                       label: 'Email',
-                      hintText: 'Masukkan email aktif Anda',
+                      hintText: 'Masukkan alamat email Anda',
                       prefixIcon: LucideIcons.mail,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
@@ -231,7 +233,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     CustomTextField(
                       controller: _passwordController,
                       label: 'Password',
-                      hintText: 'Minimal 6 karakter',
+                      hintText: 'Masukkan kata sandi Anda (minimal 6 karakter)',
                       prefixIcon: LucideIcons.lock,
                       isPassword: true,
                       validator: (value) {
@@ -249,7 +251,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     CustomTextField(
                       controller: _confirmPasswordController,
                       label: 'Konfirmasi Password',
-                      hintText: 'Masukkan ulang password',
+                      hintText: 'Konfirmasi kata sandi Anda',
                       prefixIcon: LucideIcons.shieldCheck,
                       isPassword: true,
                       validator: (value) {
@@ -311,15 +313,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Image.network(
-                                  'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                                Image.asset(
+                                  'assets/images/google.png',
                                   width: 18,
                                   height: 18,
-                                  errorBuilder: (context, error, stackTrace) => const FaIcon(
-                                    FontAwesomeIcons.google,
-                                    color: Colors.redAccent,
-                                    size: 18,
-                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 const Text(
@@ -366,9 +363,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
             ],
           ),
+         ),
         ),
       ),
     );

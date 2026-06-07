@@ -5,7 +5,6 @@ import '../../../../core/constants/colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../core/widgets/app_card.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../domain/savings_goal_model.dart';
 import '../../providers/savings_provider.dart';
@@ -202,7 +201,7 @@ class _AddSavingsGoalBottomSheetState extends ConsumerState<AddSavingsGoalBottom
                 CustomTextField(
                   controller: _nameController,
                   label: 'NAMA TABUNGAN / IMPIAN',
-                  hintText: 'Misal: Beli Laptop Baru, Liburan ke Bali',
+                  hintText: 'Contoh: Pembelian laptop baru, liburan ke Bali',
                   prefixIcon: LucideIcons.award,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -217,7 +216,7 @@ class _AddSavingsGoalBottomSheetState extends ConsumerState<AddSavingsGoalBottom
                 CustomTextField(
                   controller: _targetController,
                   label: 'NOMINAL TARGET TABUNGAN',
-                  hintText: 'Masukkan nominal target rupiah, misal: 5.000.000',
+                  hintText: 'Masukkan nominal target rupiah, contoh: 5.000.000',
                   prefixIcon: LucideIcons.target,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -356,7 +355,7 @@ class _AddSavingsGoalBottomSheetState extends ConsumerState<AddSavingsGoalBottom
                   CustomTextField(
                     controller: _allocationController,
                     label: 'NOMINAL ALOKASI PER PERIODE',
-                    hintText: 'Masukkan jumlah tabungan rutin, misal: 50.000',
+                    hintText: 'Masukkan jumlah tabungan rutin, contoh: 50.000',
                     prefixIcon: LucideIcons.coins,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [

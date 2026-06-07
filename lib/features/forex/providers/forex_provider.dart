@@ -13,7 +13,7 @@ final forexServiceProvider = Provider<ForexService>((_) => ForexService());
 //  SELECTED CURRENCIES  (max 5, persisted)
 // ════════════════════════════════════════════════════════════
 
-const _defaultCurrencies    = ['USD', 'SGD', 'EUR', 'JPY', 'MYR'];
+const _defaultCurrencies    = ['USD', 'SGD', 'EUR'];
 const _selectedCurrenciesKey = 'forex_selected_currencies';
 const int maxSelectedCurrencies = 5;
 
@@ -173,7 +173,8 @@ class ForexRatesNotifier
 
     try {
       final rates = await _service.fetchRates('IDR', currencies);
-      if (mounted) state = AsyncValue.data(rates);
+      final sorted = _sortRates(rates, currencies);
+      if (mounted) state = AsyncValue.data(sorted);
     } catch (e, st) {
       if (mounted) state = AsyncValue.error(e, st);
     }
@@ -189,11 +190,24 @@ class ForexRatesNotifier
 
     try {
       final rates = await _service.refreshRates('IDR', currencies);
-      if (mounted) state = AsyncValue.data(rates);
+      final sorted = _sortRates(rates, currencies);
+      if (mounted) state = AsyncValue.data(sorted);
       await cooldown.start();
     } catch (e, st) {
       if (mounted) state = AsyncValue.error(e, st);
     }
+  }
+
+  List<ForexRateModel> _sortRates(List<ForexRateModel> rates, List<String> order) {
+    final Map<String, ForexRateModel> rateMap = {for (var r in rates) r.code.toUpperCase(): r};
+    final List<ForexRateModel> sorted = [];
+    for (var code in order) {
+      final key = code.toUpperCase();
+      if (rateMap.containsKey(key)) {
+        sorted.add(rateMap[key]!);
+      }
+    }
+    return sorted;
   }
 }
 

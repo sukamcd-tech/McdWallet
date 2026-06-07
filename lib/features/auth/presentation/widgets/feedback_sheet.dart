@@ -262,7 +262,7 @@ class _FeedbackSheetState extends ConsumerState<FeedbackSheet> {
                   keyboardType: TextInputType.emailAddress,
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 13.5, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
-                    hintText: 'Tidak ada akun yang login',
+                    hintText: 'Tidak ada akun yang masuk',
                     hintStyle: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.normal),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     filled: true,

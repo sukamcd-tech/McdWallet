@@ -18,7 +18,7 @@ class NotificationService {
     if (_isLocalInitialized) return;
 
     // 1. SETUP LOCAL NOTIFICATIONS FOR IN-APP & BACKGROUND ALERTS
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@drawable/ic_notification');
     const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,

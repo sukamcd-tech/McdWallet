@@ -58,7 +58,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _TransactionDetailsDialog(tx: tx),
+      builder: (context) => TransactionDetailsDialog(tx: tx),
     );
   }
 
@@ -1209,10 +1209,10 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
 // ========================================================
 // TRANSACTION DETAILS DIALOG
 // ========================================================
-class _TransactionDetailsDialog extends ConsumerWidget {
+class TransactionDetailsDialog extends ConsumerWidget {
   final TransactionModel tx;
 
-  const _TransactionDetailsDialog({Key? key, required this.tx}) : super(key: key);
+  const TransactionDetailsDialog({Key? key, required this.tx}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

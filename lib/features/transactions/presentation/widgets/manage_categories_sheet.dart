@@ -471,7 +471,7 @@ class _ManageCategoriesBottomSheetState extends ConsumerState<ManageCategoriesBo
             CustomTextField(
               controller: _nameController,
               label: 'NAMA KATEGORI',
-              hintText: 'Misal: Kopi & Jajanan, Pajak, Gajian',
+              hintText: 'Contoh: Makanan & Minuman, Pajak, Gaji',
               prefixIcon: LucideIcons.tag,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {

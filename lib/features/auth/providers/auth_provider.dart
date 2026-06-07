@@ -10,10 +10,18 @@ final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(supabase);
 });
 
+// Provider untuk melacak apakah aplikasi sedang dalam mode pemulihan password (password recovery)
+final passwordRecoveryModeProvider = StateProvider<bool>((ref) => false);
+
 // Stream Provider untuk memantau User Supabase Auth yang sedang aktif
 final authStateProvider = StreamProvider<User?>((ref) {
   final service = ref.watch(authServiceProvider);
-  return service.authStateChanges.map((event) => event.session?.user);
+  return service.authStateChanges.map((event) {
+    if (event.event == AuthChangeEvent.passwordRecovery) {
+      ref.read(passwordRecoveryModeProvider.notifier).state = true;
+    }
+    return event.session?.user;
+  });
 });
 
 // StateNotifierProvider untuk mengelola profil publik pengguna aktif

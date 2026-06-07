@@ -9,6 +9,7 @@ import 'core/constants/config.dart';
 import 'core/theme/theme.dart';
 import 'core/widgets/main_layout.dart';
 import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'core/providers/security_provider.dart';
 import 'core/services/notification_service.dart';
@@ -160,16 +161,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
         ),
-        error: (err, _) => Scaffold(
-          body: Center(
-            child: Text(
-              'Terjadi kesalahan koneksi sistem:\n$err',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.danger),
-            ),
-          ),
-        ),
+        error: (err, _) {
+          // Reset status pemulihan password jika terjadi error agar kembali ke mode normal
+          ref.read(passwordRecoveryModeProvider.notifier).state = false;
+          return LoginScreen(authError: err.toString());
+        },
         data: (user) {
+          final isRecoveryMode = ref.watch(passwordRecoveryModeProvider);
+          if (isRecoveryMode) {
+            return const ResetPasswordScreen();
+          }
+
           if (user != null) {
             // Cek status keamanan lokal (PIN & Biometric)
             final securityState = ref.watch(securityProvider);

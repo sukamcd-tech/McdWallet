@@ -814,12 +814,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   Icon(LucideIcons.settings, size: 20, color: AppColors.textMuted.withOpacity(0.3)),
                   const SizedBox(height: 8),
-                  Text(
-                    versionAsync.maybeWhen(
-                      data: (version) => 'McdWallet Settings $version',
-                      orElse: () => 'McdWallet Settings v1.0.0',
-                    ),
-                    style: const TextStyle(
+                  const Text(
+                    '© 2026 SukaMCD',
+                    style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,

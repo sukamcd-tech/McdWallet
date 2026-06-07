@@ -68,6 +68,21 @@ class AuthService {
     );
   }
 
+  // Kirim link reset password ke email
+  Future<void> sendPasswordResetEmail(String email, String redirectTo) async {
+    await _supabase.auth.resetPasswordForEmail(
+      email,
+      redirectTo: redirectTo,
+    );
+  }
+
+  // Mengubah password user saat ini (setelah membuka deep link reset)
+  Future<void> updatePassword(String newPassword) async {
+    await _supabase.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
   // Logout dari aplikasi
   Future<void> signOut() async {
     await _supabase.auth.signOut();

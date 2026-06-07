@@ -6,6 +6,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/app_card.dart';
@@ -145,6 +147,9 @@ class ProfileScreen extends ConsumerWidget {
                                 data: (version) => version,
                                 orElse: () => 'v1.0.0',
                               ),
+                              onTap: () {
+                                _showAppUpdate(context, ref);
+                              },
                             ),
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 16),
@@ -458,5 +463,426 @@ class ProfileScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  void _showAppUpdate(BuildContext context, WidgetRef ref) {
+    AppHaptics.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const _AppUpdateBottomSheet(),
+    );
+  }
+}
+
+// ========================================================
+// APP UPDATE CHECKER BOTTOM SHEET
+// ========================================================
+class _AppUpdateBottomSheet extends ConsumerStatefulWidget {
+  const _AppUpdateBottomSheet({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<_AppUpdateBottomSheet> createState() => _AppUpdateBottomSheetState();
+}
+
+class _AppUpdateBottomSheetState extends ConsumerState<_AppUpdateBottomSheet> {
+  String _status = 'checking'; // 'checking', 'available', 'upToDate', 'error'
+  String _latestVersion = '';
+  String _currentVersion = '';
+  String _downloadUrl = '';
+  String _releaseNotes = '';
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUpdate();
+  }
+
+  Future<void> _checkUpdate() async {
+    try {
+      final current = ref.read(appVersionProvider).value ?? '1.0.0';
+      _currentVersion = current;
+
+      final response = await Supabase.instance.client
+          .from('app_releases')
+          .select()
+          .eq('app_name', 'McdWallet')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null) {
+        final latestVersion = response['version'] as String;
+        final changelogList = response['changelog'] as List?;
+        
+        String releaseNotesText = '';
+        if (changelogList != null && changelogList.isNotEmpty) {
+          releaseNotesText = changelogList.map((item) {
+            if (item is Map) {
+              final text = item['text'] ?? '';
+              final type = item['type'] ?? 'new';
+              if (text.startsWith('#') || text.startsWith('*') || text.startsWith('-')) {
+                return text;
+              }
+              if (type == 'fix') {
+                return '* **[Perbaikan]** $text';
+              } else if (type == 'improve') {
+                return '* **[Peningkatan]** $text';
+              } else {
+                return '* $text';
+              }
+            }
+            final strText = item.toString();
+            if (strText.startsWith('#') || strText.startsWith('*') || strText.startsWith('-')) {
+              return strText;
+            }
+            return '* $strText';
+          }).join('\n');
+        }
+
+        _latestVersion = latestVersion;
+        _downloadUrl = 'https://www.sukamcd.tech/projects/mcdwallet/download';
+        _releaseNotes = releaseNotesText;
+
+        if (_isVersionGreater(_latestVersion, _currentVersion)) {
+          if (mounted) {
+            setState(() {
+              _status = 'available';
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _status = 'upToDate';
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _status = 'upToDate';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking app update: $e');
+      if (mounted) {
+        setState(() {
+          _status = 'error';
+          _errorMessage = 'Gagal menghubungi server database pembaruan.';
+        });
+      }
+    }
+  }
+
+  bool _isVersionGreater(String newVersion, String currentVersion) {
+    final cleanNew = newVersion.split('+')[0].split('-')[0].toLowerCase().replaceAll('v', '').trim();
+    final cleanCurrent = currentVersion.split('+')[0].split('-')[0].toLowerCase().replaceAll('v', '').trim();
+
+    List<int> newParts = cleanNew.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> currentParts = cleanCurrent.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    
+    int maxLength = newParts.length > currentParts.length ? newParts.length : currentParts.length;
+    for (int i = 0; i < maxLength; i++) {
+      int newPart = i < newParts.length ? newParts[i] : 0;
+      int currentPart = i < currentParts.length ? currentParts[i] : 0;
+      if (newPart > currentPart) return true;
+      if (newPart < currentPart) return false;
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        border: Border(top: BorderSide(color: AppColors.border, width: 1.0)),
+      ),
+      padding: const EdgeInsets.only(
+        left: 24.0,
+        right: 24.0,
+        top: 20.0,
+        bottom: 36.0,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildContent(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    switch (_status) {
+      case 'checking':
+        return Column(
+          children: [
+            const CircularProgressIndicator(color: AppColors.primary),
+            const SizedBox(height: 20),
+            const Text(
+              'Memeriksa Pembaruan...',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Menghubungkan ke server untuk memverifikasi versi terbaru...',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+          ],
+        ).animate().fadeIn(duration: 250.ms);
+
+      case 'available':
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(LucideIcons.sparkles, color: AppColors.primary, size: 32),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Versi Baru Tersedia!',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Versi terbaru $_latestVersion siap diunduh (versi saat ini: $_currentVersion).',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            if (_releaseNotes.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                constraints: const BoxConstraints(maxHeight: 120),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceAlt,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border, width: 0.5),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Catatan Rilis:',
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      MarkdownBody(
+                        data: _releaseNotes,
+                        styleSheet: MarkdownStyleSheet(
+                          p: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                          listBullet: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: const BorderSide(color: AppColors.border),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Batal', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final uri = Uri.parse(_downloadUrl);
+                      try {
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else {
+                          final fallbackUri = Uri.parse('https://www.sukamcd.tech/projects/mcdwallet/download');
+                          await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+                        }
+                      } catch (_) {
+                        final fallbackUri = Uri.parse('https://www.sukamcd.tech/projects/mcdwallet/download');
+                        await launchUrl(fallbackUri, mode: LaunchMode.platformDefault);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(LucideIcons.download, size: 16),
+                        SizedBox(width: 8),
+                        Text('Unduh', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack);
+
+      case 'upToDate':
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(LucideIcons.checkCircle, color: AppColors.success, size: 32),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Aplikasi Sudah Terupdate',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Anda sudah menggunakan versi terbaru ($_currentVersion).',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 24),
+            CustomButton(
+              text: 'OK',
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ).animate().fadeIn(duration: 250.ms);
+
+      case 'error':
+      default:
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(LucideIcons.alertTriangle, color: AppColors.danger, size: 32),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Gagal Memeriksa Pembaruan',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage.isNotEmpty ? _errorMessage : 'Terjadi kesalahan saat menghubungi server.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: const BorderSide(color: AppColors.border),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Batal', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final uri = Uri.parse('https://www.sukamcd.tech/projects/mcdwallet/download');
+                      try {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      } catch (_) {
+                        await launchUrl(uri, mode: LaunchMode.platformDefault);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Kunjungi Unduhan', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ).animate().fadeIn(duration: 250.ms);
+    }
   }
 }

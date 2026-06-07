@@ -39,10 +39,10 @@ class SecurityNotifier extends StateNotifier<SecurityState> {
 
   SecurityNotifier(this._service)
       : super(SecurityState(
-          isLocked: true,
+          isLocked: false,
           hasPin: false,
           isBiometricsSupported: false,
-          isSecurityEnabled: true,
+          isSecurityEnabled: false,
         )) {
     init();
   }
@@ -54,7 +54,7 @@ class SecurityNotifier extends StateNotifier<SecurityState> {
     
     // Ambil preferensi privasi & keamanan global
     final prefs = await SharedPreferences.getInstance();
-    final isSecEnabled = prefs.getBool('security_enabled') ?? true;
+    final isSecEnabled = prefs.getBool('security_enabled') ?? false;
     
     state = SecurityState(
       isLocked: hasPin && isSecEnabled, // Hanya dikunci jika PIN sudah disetel & fitur aktif

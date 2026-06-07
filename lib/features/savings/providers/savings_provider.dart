@@ -72,18 +72,16 @@ class SavingsNotifier extends StateNotifier<AsyncValue<List<SavingsGoalModel>>> 
 
     final isLocal = _ref.read(isSavingsLocalFallbackProvider);
     if (isLocal) {
-      state.whenData((list) async {
-        final newGoal = goal.copyWith(id: 'local_${DateTime.now().millisecondsSinceEpoch}');
-        final newList = [...list, newGoal];
-        state = AsyncValue.data(newList);
-        await _saveLocalGoals(user.id, newList);
-      });
+      final list = state.value ?? [];
+      final newGoal = goal.copyWith(id: 'local_${DateTime.now().millisecondsSinceEpoch}');
+      final newList = [...list, newGoal];
+      state = AsyncValue.data(newList);
+      await _saveLocalGoals(user.id, newList);
     } else {
       try {
         final newGoal = await _service.createSavingsGoal(goal);
-        state.whenData((list) {
-          state = AsyncValue.data([...list, newGoal]);
-        });
+        final list = state.value ?? [];
+        state = AsyncValue.data([...list, newGoal]);
       } catch (e, st) {
         state = AsyncValue.error(e, st);
       }
@@ -97,17 +95,15 @@ class SavingsNotifier extends StateNotifier<AsyncValue<List<SavingsGoalModel>>> 
 
     final isLocal = _ref.read(isSavingsLocalFallbackProvider);
     if (isLocal) {
-      state.whenData((list) async {
-        final newList = list.where((g) => g.id != goalId).toList();
-        state = AsyncValue.data(newList);
-        await _saveLocalGoals(user.id, newList);
-      });
+      final list = state.value ?? [];
+      final newList = list.where((g) => g.id != goalId).toList();
+      state = AsyncValue.data(newList);
+      await _saveLocalGoals(user.id, newList);
     } else {
       try {
         await _service.deleteSavingsGoal(goalId);
-        state.whenData((list) {
-          state = AsyncValue.data(list.where((g) => g.id != goalId).toList());
-        });
+        final list = state.value ?? [];
+        state = AsyncValue.data(list.where((g) => g.id != goalId).toList());
       } catch (e, st) {
         state = AsyncValue.error(e, st);
       }
@@ -146,33 +142,30 @@ class SavingsNotifier extends StateNotifier<AsyncValue<List<SavingsGoalModel>>> 
 
       // 2. Perbarui jumlah current_amount tabungan reaktif di memori
       final isLocal = _ref.read(isSavingsLocalFallbackProvider);
-      var success = false;
+      final list = state.value;
+      if (list == null) return false;
 
-      await state.whenData((list) async {
-        final index = list.indexWhere((g) => g.id == goalId);
-        if (index != -1) {
-          final goal = list[index];
-          double newAmount = goal.currentAmount + (isDeposit ? amount : -amount);
-          if (newAmount < 0) newAmount = 0.0;
+      final index = list.indexWhere((g) => g.id == goalId);
+      if (index == -1) return false;
 
-          if (isLocal) {
-            final updatedGoal = goal.copyWith(currentAmount: newAmount);
-            final newList = [...list];
-            newList[index] = updatedGoal;
-            state = AsyncValue.data(newList);
-            await _saveLocalGoals(user.id, newList);
-            success = true;
-          } else {
-            final updatedGoal = await _service.updateSavingsGoalAmount(goalId, newAmount);
-            final newList = [...list];
-            newList[index] = updatedGoal;
-            state = AsyncValue.data(newList);
-            success = true;
-          }
-        }
-      });
+      final goal = list[index];
+      double newAmount = goal.currentAmount + (isDeposit ? amount : -amount);
+      if (newAmount < 0) newAmount = 0.0;
 
-      return success;
+      if (isLocal) {
+        final updatedGoal = goal.copyWith(currentAmount: newAmount);
+        final newList = [...list];
+        newList[index] = updatedGoal;
+        state = AsyncValue.data(newList);
+        await _saveLocalGoals(user.id, newList);
+        return true;
+      } else {
+        final updatedGoal = await _service.updateSavingsGoalAmount(goalId, newAmount);
+        final newList = [...list];
+        newList[index] = updatedGoal;
+        state = AsyncValue.data(newList);
+        return true;
+      }
     } catch (e) {
       return false;
     }

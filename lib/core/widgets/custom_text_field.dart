@@ -42,14 +42,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Uppercase label above field ──
+        // ── Clean modern label above field ──
         Text(
-          widget.label.toUpperCase(),
+          widget.label,
           style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.0,
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.1,
           ),
         ),
         const SizedBox(height: 8),

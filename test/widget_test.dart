@@ -1,30 +1,44 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:mcd_wallet/main.dart';
+import 'package:mcd_wallet/features/forex/domain/forex_rate_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('ForexRateModel Unit Tests', () {
+    test('toJson and fromJson serialization/deserialization works correctly', () {
+      const model = ForexRateModel(
+        code: 'USD',
+        name: 'Dolar Amerika',
+        symbol: r'$',
+        flag: '🇺🇸',
+        rate: 16000.0,
+        previousRate: 15800.0,
+        trend: ForexTrend.up,
+      );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      final json = model.toJson();
+      final decoded = ForexRateModel.fromJson(json);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      expect(decoded.code, equals('USD'));
+      expect(decoded.name, equals('Dolar Amerika'));
+      expect(decoded.symbol, equals(r'$'));
+      expect(decoded.flag, equals('🇺🇸'));
+      expect(decoded.rate, equals(16000.0));
+      expect(decoded.previousRate, equals(15800.0));
+      expect(decoded.trend, equals(ForexTrend.up));
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('changePercent calculates correct percentage', () {
+      const model = ForexRateModel(
+        code: 'USD',
+        name: 'Dolar Amerika',
+        symbol: r'$',
+        flag: '🇺🇸',
+        rate: 16000.0,
+        previousRate: 15000.0,
+        trend: ForexTrend.up,
+      );
+
+      // (16000 - 15000) / 15000 * 100 = 6.6666%
+      expect(model.changePercent, closeTo(6.6666, 0.001));
+    });
   });
 }

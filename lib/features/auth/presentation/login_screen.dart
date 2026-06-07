@@ -8,9 +8,11 @@ import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../providers/auth_provider.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  final String? authError;
+  const LoginScreen({Key? key, this.authError}) : super(key: key);
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -22,6 +24,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isLoadingGoogle = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.authError != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        String message = widget.authError!;
+        if (message.contains('Email link is invalid') || message.contains('otp_expired')) {
+          message = 'Tautan reset email sudah kedaluwarsa atau telah digunakan. Silakan minta tautan baru.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -131,23 +156,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
           physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 30.0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: MediaQuery.of(context).size.width - 56,
-              maxWidth: MediaQuery.of(context).size.width - 56,
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 12),
 
                 // ── App Logo ──
                 Image.asset(
                   'assets/images/logo.png',
-                  width: 160,
+                  width: 110,
                   fit: BoxFit.contain,
                 )
                     .animate()
@@ -159,11 +179,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       curve: Curves.easeOut,
                     ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 12),
 
                 // ── Title ──
                 const Text(
-                      'McdWallet',
+                      'Masuk ke Akun',
                       style: TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 28,
@@ -178,7 +198,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 8),
 
                 const Text(
-                  'Kelola keuanganmu secara cerdas',
+                  'Kelola keuangan anda secara cerdas',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -187,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
 
-                const SizedBox(height: 52),
+                const SizedBox(height: 28),
 
                 // ── Login Form ──
                 Form(
@@ -195,21 +215,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'MASUK KE AKUN',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
 
                           CustomTextField(
                             controller: _emailController,
                             label: 'Email',
-                            hintText: 'Masukkan email Anda',
+                            hintText: 'Masukkan alamat email Anda',
                             prefixIcon: LucideIcons.mail,
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
@@ -229,7 +239,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           CustomTextField(
                             controller: _passwordController,
                             label: 'Password',
-                            hintText: 'Masukkan password Anda',
+                            hintText: 'Masukkan kata sandi Anda',
                             prefixIcon: LucideIcons.lock,
                             isPassword: true,
                             validator: (value) {
@@ -247,7 +257,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ForgotPasswordScreen(),
+                                  ),
+                                );
+                              },
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 4,
@@ -266,14 +283,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 20),
 
                           CustomButton(
                             text: 'Masuk',
                             isLoading: _isLoading,
                             onPressed: _handleLogin,
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 18),
                           Row(
                             children: [
                               Expanded(child: Divider(color: AppColors.textMuted.withOpacity(0.2))),
@@ -291,7 +308,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               Expanded(child: Divider(color: AppColors.textMuted.withOpacity(0.2))),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 18),
                           OutlinedButton(
                             onPressed: (_isLoading || _isLoadingGoogle) ? null : _handleGoogleLogin,
                             style: OutlinedButton.styleFrom(
@@ -315,15 +332,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Image.network(
-                                        'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                                      Image.asset(
+                                        'assets/images/google.png',
                                         width: 18,
                                         height: 18,
-                                        errorBuilder: (context, error, stackTrace) => const FaIcon(
-                                          FontAwesomeIcons.google,
-                                          color: Colors.redAccent,
-                                          size: 18,
-                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       const Text(
@@ -349,7 +361,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       curve: Curves.easeOut,
                     ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 24),
 
                 // ── Register Link ──
                 Row(
@@ -383,12 +395,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                 ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
               ],
             ),         // Column
-          ),           // ConstrainedBox
+          ),           // Padding
         ),             // SingleChildScrollView
-      ),               // SafeArea  ← baris ini yang ditambahkan
+      ),               // SafeArea
     );                 // Scaffold
   }
 }

@@ -475,12 +475,19 @@ class _AddWalletBottomSheetState extends ConsumerState<_AddWalletBottomSheet> {
                             children: [
                               Text(flag, style: TextStyle(fontSize: 18, color: isIdr ? null : AppColors.textMuted.withOpacity(0.5))),
                               const SizedBox(width: 10),
-                              Text(
-                                isIdr ? '$value - $name' : '$value - $name (Sedang dalam pengembangan)',
-                                style: TextStyle(
-                                  color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
-                                  fontSize: 14,
-                                  fontWeight: isIdr ? FontWeight.w600 : FontWeight.normal,
+                              Container(
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.of(context).size.width - 140,
+                                ),
+                                child: Text(
+                                  isIdr ? '$value - $name' : '$value - $name (Sedang dalam pengembangan)',
+                                  style: TextStyle(
+                                    color: isIdr ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
+                                    fontSize: 14,
+                                    fontWeight: isIdr ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                             ],

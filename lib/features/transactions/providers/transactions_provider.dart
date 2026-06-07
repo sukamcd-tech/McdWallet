@@ -470,8 +470,8 @@ class TransactionsNotifier extends StateNotifier<AsyncValue<List<TransactionMode
             }
           }
 
-          // 2. Cek Ambang Batas Peringatan Kustom (50%, 70%, 90%) yang Aktif di Pengaturan
-          final activeThresholds = _ref.read(budgetSettingsProvider);
+          // 2. Cek Ambang Batas Peringatan Kustom (50%, 70%, 90%)
+          final activeThresholds = _ref.read(budgetThresholdsProvider(budget.id));
           for (final thresholdVal in activeThresholds) {
             final double limitThresholdAmount = budget.amountLimit * (thresholdVal / 100);
             if (spent >= limitThresholdAmount && previousSpent < limitThresholdAmount) {
