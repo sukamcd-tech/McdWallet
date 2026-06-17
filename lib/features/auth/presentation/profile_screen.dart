@@ -15,6 +15,7 @@ import '../providers/auth_provider.dart';
 import 'settings_screen.dart';
 import 'widgets/feedback_sheet.dart';
 import '../../../core/utils/haptics.dart';
+import 'upgrade_screen.dart';
 
 final appVersionProvider = FutureProvider<String>((ref) async {
   try {
@@ -27,6 +28,15 @@ final appVersionProvider = FutureProvider<String>((ref) async {
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({Key? key}) : super(key: key);
+
+  String _formatExpiryDateText(DateTime? date) {
+    if (date == null) return '-';
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,14 +91,45 @@ class ProfileScreen extends ConsumerWidget {
 
                       const SizedBox(height: 16),
 
-                      Text(
-                        profile.fullName,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            profile.fullName,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          if (profile.isPro) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                gradient: AppColors.premiumGradient,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                'PRO',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
 
                       const SizedBox(height: 4),
@@ -101,7 +142,78 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ).animate().fadeIn(delay: 150.ms, duration: 300.ms),
 
-                      const SizedBox(height: 36),
+                      // Promo Banner untuk Upgrade ke Pro / Perpanjang
+                      const SizedBox(height: 20),
+                      InkWell(
+                        onTap: () {
+                          AppHaptics.lightImpact();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const UpgradeScreen()),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface, // Putih terang
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.border, width: 1),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary, // Charcoal
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  profile.isPro ? LucideIcons.shieldCheck : LucideIcons.sparkles, 
+                                  color: Colors.white, 
+                                  size: 14
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      profile.isPro ? 'Keanggotaan Pro Aktif' : 'Upgrade ke McdWallet Pro',
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary, // Charcoal
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      profile.isPro
+                                          ? 'Masa aktif sampai: ${_formatExpiryDateText(profile.subscriptionExpiresAt)} (Klik untuk Perpanjang)'
+                                          : 'Buka fitur kolaborasi & pembukuan usaha.',
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary, // Abu-abu gelap
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(LucideIcons.chevronRight, color: AppColors.textPrimary, size: 16), // Charcoal
+                            ],
+                          ),
+                        ),
+                      ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.05, end: 0),
+
+                      const SizedBox(height: 24),
 
                       // ── Info Card ──
                       AppCard(
@@ -129,6 +241,22 @@ class ProfileScreen extends ConsumerWidget {
                               LucideIcons.calendar,
                               'TERDAFTAR',
                               '${profile.createdAt.day}/${profile.createdAt.month}/${profile.createdAt.year}',
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Divider(color: AppColors.border, height: 1, thickness: 0.5),
+                            ),
+                            _buildInfoRow(
+                              LucideIcons.award,
+                              'TIPE AKUN',
+                              profile.isPro ? 'Bisnis (Aktif)' : 'Personal',
+                              onTap: () {
+                                AppHaptics.lightImpact();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const UpgradeScreen()),
+                                );
+                              },
                             ),
                           ],
                         ),

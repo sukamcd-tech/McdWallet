@@ -121,6 +121,9 @@ class AuthService {
     String? fullName,
     String? avatarUrl,
     String? currency,
+    String? subscriptionTier,
+    String? subscriptionStatus,
+    DateTime? subscriptionExpiresAt,
   }) async {
     final updates = {
       'id': userId,
@@ -128,11 +131,15 @@ class AuthService {
       if (fullName != null) 'full_name': fullName,
       if (avatarUrl != null) 'avatar_url': avatarUrl,
       if (currency != null) 'currency': currency,
+      if (subscriptionTier != null) 'subscription_tier': subscriptionTier,
+      if (subscriptionStatus != null) 'subscription_status': subscriptionStatus,
+      if (subscriptionExpiresAt != null) 'subscription_expires_at': subscriptionExpiresAt.toUtc().toIso8601String(),
     };
 
     final response = await _supabase
         .from('profiles')
-        .upsert(updates)
+        .update(updates)
+        .eq('id', userId)
         .select()
         .single();
     

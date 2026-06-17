@@ -11,6 +11,9 @@ create table public.profiles (
   full_name text,
   avatar_url text,
   currency text default 'IDR' not null,
+  subscription_tier text default 'free' check (subscription_tier in ('free', 'pro')) not null,
+  subscription_status text default 'inactive' check (subscription_status in ('active', 'inactive', 'canceled', 'past_due')) not null,
+  subscription_expires_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

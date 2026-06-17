@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/providers/supabase_provider.dart';
 import '../data/auth_service.dart';
 import '../domain/profile_model.dart';
+import '../data/xendit_service.dart';
 
 // Provider untuk mengakses AuthService
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -69,6 +70,9 @@ class ProfileNotifier extends StateNotifier<AsyncValue<ProfileModel?>> {
     String? fullName,
     String? avatarUrl,
     String? currency,
+    String? subscriptionTier,
+    String? subscriptionStatus,
+    DateTime? subscriptionExpiresAt,
   }) async {
     final currentProfile = state.value;
     if (currentProfile == null) return;
@@ -80,6 +84,9 @@ class ProfileNotifier extends StateNotifier<AsyncValue<ProfileModel?>> {
         fullName: fullName,
         avatarUrl: avatarUrl,
         currency: currency,
+        subscriptionTier: subscriptionTier,
+        subscriptionStatus: subscriptionStatus,
+        subscriptionExpiresAt: subscriptionExpiresAt,
       );
       state = AsyncValue.data(updated);
     } catch (e, st) {
@@ -87,3 +94,17 @@ class ProfileNotifier extends StateNotifier<AsyncValue<ProfileModel?>> {
     }
   }
 }
+
+// Provider untuk mengakses XenditService
+final xenditServiceProvider = Provider<XenditService>((ref) {
+  return XenditService();
+});
+
+// Provider untuk memeriksa apakah user berstatus PRO aktif
+final isPremiumProvider = Provider<bool>((ref) {
+  final profileAsync = ref.watch(profileProvider);
+  return profileAsync.maybeWhen(
+    data: (profile) => profile?.isPro ?? false,
+    orElse: () => false,
+  );
+});
