@@ -142,6 +142,7 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ).animate().fadeIn(delay: 150.ms, duration: 300.ms),
 
+                      /*
                       // Promo Banner untuk Upgrade ke Pro / Perpanjang
                       const SizedBox(height: 20),
                       InkWell(
@@ -212,6 +213,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                       ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.05, end: 0),
+                      */
 
                       const SizedBox(height: 24),
 
@@ -250,6 +252,7 @@ class ProfileScreen extends ConsumerWidget {
                               LucideIcons.award,
                               'TIPE AKUN',
                               profile.isPro ? 'Bisnis (Aktif)' : 'Personal',
+                              /*
                               onTap: () {
                                 AppHaptics.lightImpact();
                                 Navigator.push(
@@ -257,6 +260,7 @@ class ProfileScreen extends ConsumerWidget {
                                   MaterialPageRoute(builder: (_) => const UpgradeScreen()),
                                 );
                               },
+                              */
                             ),
                           ],
                         ),
